@@ -1,0 +1,42 @@
+[package]
+name = "dreid-kernel"
+version = "0.1.0"
+authors = [
+    "Tony Kan <tonykan@caltech.edu>",
+    "William A. Goddard III <wag@caltech.edu>",
+]
+license = "MIT"
+repository = "https://github.com/caltechmsc/dreid-kernel"
+edition = "2024"
+description = "A high-performance, no-std Rust library providing pure mathematical primitives and stateless energy kernels for the DREIDING force field."
+keywords = [
+    "chemistry",
+    "physics",
+    "molecular-dynamics",
+    "force-field",
+    "dreiding",
+]
+categories = ["science", "simulation"]
+readme = "README.md"
+
+[dependencies]
+libm = { version = "0.2.15", optional = true }
+
+[dev-dependencies]
+approx = "0.5.1"
+
+[lib]
+name = "dreid_kernel"
+path = "src/lib.rs"
+
+[features]
+default = ["std"]
+std = []
+libm = ["dep:libm"]
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"
