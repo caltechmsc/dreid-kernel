@@ -19,6 +19,9 @@ keywords = [
 categories = ["science", "simulation"]
 readme = "README.md"
 
+[package.metadata.docs.rs]
+rustdoc-args = ["--html-in-header", "katex-header.html"]
+
 [dependencies]
 libm = { version = "0.2.15", optional = true }
 
