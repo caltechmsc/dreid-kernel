@@ -131,3 +131,98 @@ impl Real for f32 {
         }
     }
 }
+
+// ============================================================================
+// Implementation for f64
+// ============================================================================
+
+impl Real for f64 {
+    #[inline(always)]
+    fn sqrt(self) -> Self {
+        #[cfg(feature = "std")]
+        {
+            self.sqrt()
+        }
+        #[cfg(not(feature = "std"))]
+        {
+            sqrt(self)
+        }
+    }
+
+    #[inline(always)]
+    fn recip(self) -> Self {
+        self.recip()
+    }
+
+    #[inline(always)]
+    fn abs(self) -> Self {
+        #[cfg(feature = "std")]
+        {
+            self.abs()
+        }
+        #[cfg(not(feature = "std"))]
+        {
+            fabs(self)
+        }
+    }
+
+    #[inline(always)]
+    fn max(self, other: Self) -> Self {
+        #[cfg(feature = "std")]
+        {
+            self.max(other)
+        }
+        #[cfg(not(feature = "std"))]
+        {
+            if self > other { self } else { other }
+        }
+    }
+
+    #[inline(always)]
+    fn exp(self) -> Self {
+        #[cfg(feature = "std")]
+        {
+            self.exp()
+        }
+        #[cfg(not(feature = "std"))]
+        {
+            exp(self)
+        }
+    }
+
+    #[inline(always)]
+    fn sin(self) -> Self {
+        #[cfg(feature = "std")]
+        {
+            self.sin()
+        }
+        #[cfg(not(feature = "std"))]
+        {
+            sin(self)
+        }
+    }
+
+    #[inline(always)]
+    fn cos(self) -> Self {
+        #[cfg(feature = "std")]
+        {
+            self.cos()
+        }
+        #[cfg(not(feature = "std"))]
+        {
+            cos(self)
+        }
+    }
+
+    #[inline(always)]
+    fn acos(self) -> Self {
+        #[cfg(feature = "std")]
+        {
+            self.acos()
+        }
+        #[cfg(not(feature = "std"))]
+        {
+            acos(self)
+        }
+    }
+}
