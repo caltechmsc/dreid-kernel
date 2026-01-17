@@ -41,7 +41,7 @@ pub trait PairKernel<T: Real> {
 ///   - For Angles: $\cos\theta = \hat{r}\_{ji} \cdot \hat{r}\_{jk}$
 ///   - For Inversions: $\cos\psi = \hat{n}\_{jik} \cdot \hat{r}\_{il}$
 /// - **Output (Diff)**: The torque-like factor $\Gamma$ defined as:
-///   $$ \Gamma = -\frac{dE}{d(\cos\theta)} $$
+///   $$ \Gamma = \frac{dE}{d(\cos\theta)} $$
 pub trait AngleKernel<T: Real> {
     /// Associated constants/parameters required by the potential (e.g., $k, \theta_0$).
     type Params: Copy;
@@ -69,7 +69,7 @@ pub trait AngleKernel<T: Real> {
 /// - **Input**: Both $\cos\phi$ and $\sin\phi$ are required to determine phase and
 ///   compute multi-term expansions (e.g., $\cos(n\phi)$) without `acos`.
 /// - **Output (Diff)**: The pure torque $T$ defined as:
-///   $$ T = -\frac{dE}{d\phi} $$
+///   $$ T = \frac{dE}{d\phi} $$
 pub trait TorsionKernel<T: Real> {
     /// Associated constants/parameters required by the potential (e.g., $V, n$).
     type Params: Copy;
@@ -98,7 +98,7 @@ pub trait TorsionKernel<T: Real> {
 /// - **Input**: Squared distance $r^2$ and cosine of angle $\cos\theta$.
 /// - **Output**: Two derivative factors:
 ///   1. `force_factor_rad`: Radial part ($- \frac{1}{r} \frac{dE}{dr}$).
-///   2. `force_factor_ang`: Angular part ($- \frac{dE}{d(\cos\theta)}$).
+///   2. `force_factor_ang`: Angular part ($ \frac{dE}{d(\cos\theta)}$).
 pub trait HybridKernel<T: Real> {
     /// Associated constants/parameters required by the potential.
     type Params: Copy;
