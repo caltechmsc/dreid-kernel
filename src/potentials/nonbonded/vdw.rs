@@ -155,14 +155,15 @@ impl<T: Real> PairKernel<T> for Buckingham {
         let is_safe = T::from((r_sq >= r_fusion_sq) as u8 as f32);
         let effective_r_sq = r_sq.max(r_fusion_sq);
 
-        let r = effective_r_sq.sqrt();
-        let inv_r2 = effective_r_sq.recip();
+        let inv_r = effective_r_sq.rsqrt();
+        let r = effective_r_sq * inv_r;
+        let inv_r2 = inv_r * inv_r;
         let inv_r4 = inv_r2 * inv_r2;
         let inv_r8 = inv_r4 * inv_r4;
 
         let exp_term = T::exp(-b * r);
 
-        let repulsion_factor = a * b * exp_term * r.recip();
+        let repulsion_factor = a * b * exp_term * inv_r;
         let attraction_factor = T::from(6.0) * c * inv_r8;
         let diff_unsafe = repulsion_factor - attraction_factor;
 
@@ -180,8 +181,9 @@ impl<T: Real> PairKernel<T> for Buckingham {
         let is_safe = T::from((r_sq >= r_fusion_sq) as u8 as f32);
         let effective_r_sq = r_sq.max(r_fusion_sq);
 
-        let r = effective_r_sq.sqrt();
-        let inv_r2 = effective_r_sq.recip();
+        let inv_r = effective_r_sq.rsqrt();
+        let r = effective_r_sq * inv_r;
+        let inv_r2 = inv_r * inv_r;
         let inv_r4 = inv_r2 * inv_r2;
         let inv_r6 = inv_r4 * inv_r2;
         let inv_r8 = inv_r6 * inv_r2;
@@ -192,7 +194,7 @@ impl<T: Real> PairKernel<T> for Buckingham {
         let attraction_energy = c * inv_r6;
         let energy_unsafe = repulsion_energy - attraction_energy;
 
-        let repulsion_force = repulsion_energy * b * r.recip();
+        let repulsion_force = repulsion_energy * b * inv_r;
         let attraction_force = T::from(6.0) * c * inv_r8;
         let diff_unsafe = repulsion_force - attraction_force;
 
