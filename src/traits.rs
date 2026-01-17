@@ -27,3 +27,32 @@ pub trait PairKernel<T: Real> {
     /// Should share intermediate calculations (e.g., `sqrt`, `exp`) where possible.
     fn compute(r_sq: T, params: Self::Params) -> EnergyDiff<T>;
 }
+
+// ============================================================================
+// 2. Angle Potential (3-Body / 4-Body Planar Interaction)
+// ============================================================================
+
+/// Trait for bending potentials (Angle) and inversion potentials (Improper).
+///
+/// Models interaction energy as a function of the cosine of an angle $\theta$ or $\psi$.
+///
+/// # Mathematical Contract
+/// - **Input**: Cosine of the angle ($\cos\theta$).
+///   - For Angles: $\cos\theta = \hat{r}_{ji} \cdot \hat{r}_{jk}$
+///   - For Inversions: $\cos\psi = \hat{n}_{jik} \cdot \hat{r}_{il}$
+/// - **Output (Diff)**: The torque-like factor $\Gamma$ defined as:
+///   $$ \Gamma = -\frac{dE}{d(\cos\theta)} $$
+pub trait AngleKernel<T: Real> {
+    /// Associated constants/parameters required by the potential (e.g., $k, \theta_0$).
+    type Params: Copy;
+
+    /// Computes only the potential energy.
+    fn energy(cos_angle: T, params: Self::Params) -> T;
+
+    /// Computes only the torque-like factor $\Gamma$.
+    fn diff(cos_angle: T, params: Self::Params) -> T;
+
+    /// Computes both energy and torque-like factor efficiently.
+    /// Should share intermediate calculations where possible.
+    fn compute(cos_angle: T, params: Self::Params) -> EnergyDiff<T>;
+}

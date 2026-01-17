@@ -4,5 +4,5 @@ mod math;
 mod traits;
 mod types;
 
-pub use traits::PairKernel;
+pub use traits::{AngleKernel, PairKernel};
 pub use types::{EnergyDiff, HybridEnergyDiff};
