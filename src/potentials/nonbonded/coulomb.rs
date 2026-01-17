@@ -53,7 +53,7 @@ impl<T: Real> PairKernel<T> for Coulomb {
         let inv_r = r_sq.rsqrt();
         let energy = q_product * inv_r;
 
-        let inv_r2 = r_sq.recip();
+        let inv_r2 = inv_r * inv_r;
         energy * inv_r2
     }
 
@@ -63,7 +63,7 @@ impl<T: Real> PairKernel<T> for Coulomb {
     #[inline(always)]
     fn compute(r_sq: T, q_product: Self::Params) -> EnergyDiff<T> {
         let inv_r = r_sq.rsqrt();
-        let inv_r2 = r_sq.recip();
+        let inv_r2 = inv_r * inv_r;
 
         let energy = q_product * inv_r;
 
