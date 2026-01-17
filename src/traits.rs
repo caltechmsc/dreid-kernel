@@ -38,8 +38,8 @@ pub trait PairKernel<T: Real> {
 ///
 /// # Mathematical Contract
 /// - **Input**: Cosine of the angle ($\cos\theta$).
-///   - For Angles: $\cos\theta = \hat{r}_{ji} \cdot \hat{r}_{jk}$
-///   - For Inversions: $\cos\psi = \hat{n}_{jik} \cdot \hat{r}_{il}$
+///   - For Angles: $\cos\theta = \hat{r}\_{ji} \cdot \hat{r}\_{jk}$
+///   - For Inversions: $\cos\psi = \hat{n}\_{jik} \cdot \hat{r}\_{il}$
 /// - **Output (Diff)**: The torque-like factor $\Gamma$ defined as:
 ///   $$ \Gamma = -\frac{dE}{d(\cos\theta)} $$
 pub trait AngleKernel<T: Real> {
@@ -55,4 +55,32 @@ pub trait AngleKernel<T: Real> {
     /// Computes both energy and torque-like factor efficiently.
     /// Should share intermediate calculations where possible.
     fn compute(cos_angle: T, params: Self::Params) -> EnergyDiff<T>;
+}
+
+// ============================================================================
+// 3. Torsion Potential (4-Body Interaction)
+// ============================================================================
+
+/// Trait for torsional potentials (Dihedrals).
+///
+/// Models interaction energy as a function of the dihedral angle $\phi$.
+///
+/// # Mathematical Contract
+/// - **Input**: Both $\cos\phi$ and $\sin\phi$ are required to determine phase and
+///   compute multi-term expansions (e.g., $\cos(n\phi)$) without `acos`.
+/// - **Output (Diff)**: The pure torque $T$ defined as:
+///   $$ T = -\frac{dE}{d\phi} $$
+pub trait TorsionKernel<T: Real> {
+    /// Associated constants/parameters required by the potential (e.g., $V, n$).
+    type Params: Copy;
+
+    /// Computes only the potential energy.
+    fn energy(cos_phi: T, sin_phi: T, params: Self::Params) -> T;
+
+    /// Computes only the pure torque $T$.
+    fn diff(cos_phi: T, sin_phi: T, params: Self::Params) -> T;
+
+    /// Computes both energy and pure torque efficiently.
+    /// Should share intermediate calculations where possible.
+    fn compute(cos_phi: T, sin_phi: T, params: Self::Params) -> EnergyDiff<T>;
 }
