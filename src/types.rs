@@ -20,7 +20,7 @@ pub struct EnergyDiff<T: Real> {
 pub struct HybridEnergyDiff<T: Real> {
     pub energy: T,
 
-    /// Radial force factor: `(1/r * dE/dr)`
+    /// Radial force factor: `-(1/r * dE/dr)`
     /// Used to compute forces along the D-A vector.
     pub force_factor_rad: T,
 
