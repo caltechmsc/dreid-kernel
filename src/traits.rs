@@ -97,8 +97,8 @@ pub trait TorsionKernel<T: Real> {
 /// # Mathematical Contract
 /// - **Input**: Squared distance $r^2$ and cosine of angle $\cos\theta$.
 /// - **Output**: Two derivative factors:
-///   1. `force_factor_rad`: Radial part ($1/r \cdot dE/dr$).
-///   2. `force_factor_ang`: Angular part ($-dE/d\cos$).
+///   1. `force_factor_rad`: Radial part ($- \frac{1}{r} \frac{dE}{dr}$).
+///   2. `force_factor_ang`: Angular part ($- \frac{dE}{d(\cos\theta)}$).
 pub trait HybridKernel<T: Real> {
     /// Associated constants/parameters required by the potential.
     type Params: Copy;
