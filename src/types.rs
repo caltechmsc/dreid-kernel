@@ -24,7 +24,7 @@ pub struct HybridEnergyDiff<T: Real> {
     /// Used to compute forces along the D-A vector.
     pub force_factor_rad: T,
 
-    /// Angular force factor: `-dE/d(cos)`
+    /// Angular force factor: `dE/d(cos)`
     /// Used to compute torque-like forces on D-H-A via Wilson B-Matrix.
     pub force_factor_ang: T,
 }
