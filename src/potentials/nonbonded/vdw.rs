@@ -269,8 +269,10 @@ impl<T: Real> PairKernel<T> for SplinedBuckingham {
 
         let r = r_sq.sqrt();
 
-        let inv_r2_long = r_sq.recip();
+        let r_sq_long = r_sq.max(r_spline_sq);
+        let inv_r2_long = r_sq_long.recip();
         let inv_r6_long = inv_r2_long * inv_r2_long * inv_r2_long;
+
         let energy_long = a * T::exp(-b * r) - c * inv_r6_long;
 
         let energy_short = ((((p5 * r + p4) * r + p3) * r + p2) * r + p1) * r + p0;
@@ -294,9 +296,13 @@ impl<T: Real> PairKernel<T> for SplinedBuckingham {
 
         let r = r_sq.sqrt();
 
-        let inv_r2_long = r_sq.recip();
-        let inv_r8_long = inv_r2_long * inv_r2_long * inv_r2_long * inv_r2_long;
-        let diff_long = a * b * T::exp(-b * r) * r.recip() - T::from(6.0) * c * inv_r8_long;
+        let r_sq_long = r_sq.max(r_spline_sq);
+        let inv_r_long = r_sq_long.rsqrt();
+        let inv_r2_long = inv_r_long * inv_r_long;
+        let inv_r4_long = inv_r2_long * inv_r2_long;
+        let inv_r8_long = inv_r4_long * inv_r4_long;
+
+        let diff_long = a * b * T::exp(-b * r) * inv_r_long - T::from(6.0) * c * inv_r8_long;
 
         let r2 = r_sq;
         let r3 = r2 * r;
@@ -322,12 +328,17 @@ impl<T: Real> PairKernel<T> for SplinedBuckingham {
 
         let r = r_sq.sqrt();
 
-        let inv_r2_long = r_sq.recip();
-        let inv_r6_long = inv_r2_long * inv_r2_long * inv_r2_long;
+        let r_sq_long = r_sq.max(r_spline_sq);
+        let inv_r_long = r_sq_long.rsqrt();
+        let inv_r2_long = inv_r_long * inv_r_long;
+        let inv_r4_long = inv_r2_long * inv_r2_long;
+        let inv_r6_long = inv_r4_long * inv_r2_long;
+
         let exp_term_long = T::exp(-b * r);
         let energy_long = a * exp_term_long - c * inv_r6_long;
-        let diff_long =
-            (a * b * exp_term_long - T::from(6.0) * c * inv_r6_long * inv_r2_long) * r.recip();
+
+        let inv_r8_long = inv_r4_long * inv_r4_long;
+        let diff_long = a * b * exp_term_long * inv_r_long - T::from(6.0) * c * inv_r8_long;
 
         let energy_short = ((((p5 * r + p4) * r + p3) * r + p2) * r + p1) * r + p0;
         let r2 = r_sq;
