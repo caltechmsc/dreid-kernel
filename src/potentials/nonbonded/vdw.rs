@@ -208,3 +208,137 @@ impl<T: Real> PairKernel<T> for Buckingham {
         }
     }
 }
+
+/// Splined Buckingham (Exp-6) potential with $C^2$ continuous short-range regularization.
+///
+/// # Physics
+///
+/// This kernel enhances the standard Buckingham potential by replacing the problematic
+/// short-range region ($r < r_{spline}$) with a quintic (5th degree) polynomial, $P_5(r)$.
+/// This guarantees that the energy, force ($C^1$), and force derivative ($C^2$) are
+/// continuous everywhere, which is critical for stable molecular dynamics simulations.
+///
+/// - **Formula**: $$ E(r) = \begin{cases} D_0 \left[ \frac{6}{\zeta-6} \exp\left(\zeta(1 - \frac{r}{R_0})\right) - \frac{\zeta}{\zeta-6} \left(\frac{R_0}{r}\right)^6 \right] & r \ge r_{spline} \\ P_5(r) = \sum_{i=0}^{5} p_i r^i & r < r_{spline} \end{cases} $$
+/// - **Derivative Factor (`diff`)**: $$ D = -\frac{1}{r} \frac{dE}{dr} = \begin{cases} \frac{6\zeta D_0}{r(\zeta-6)R_0} \left[ \exp\left(\zeta(1 - \frac{r}{R_0})\right) - \left(\frac{R_0}{r}\right)^7 \right] & r \ge r_{spline} \\ -\frac{1}{r} \sum_{i=1}^{5} i \cdot p_i r^{i-1} & r < r_{spline} \end{cases} $$
+///
+/// # Parameters
+///
+/// For computational efficiency, the physical parameters ($D_0, R_0, \zeta$) are pre-computed
+/// into two sets for the long-range and short-range parts:
+///
+/// - **Long-Range Part ($r \ge r_{spline}$)**:
+///   - `a`: The repulsion pre-factor $A = \frac{6 D_0}{\zeta-6} e^{\zeta}$.
+///   - `b`: The repulsion decay constant $B = \zeta / R_0$.
+///   - `c`: The attraction pre-factor $C = \frac{\zeta D_0 R_0^6}{\zeta-6}$.
+///
+/// - **Short-Range Part ($r < r_{spline}$)**:
+///   - `r_spline_sq`: The squared distance threshold for switching to the polynomial.
+///   - `p0..p5`: The six coefficients of the quintic polynomial $P_5(r)$, pre-computed
+///     to satisfy $C^2$ continuity at $r_{spline}$ and boundary conditions at $r=0$.
+///
+/// # Inputs
+///
+/// - `r_sq`: Squared distance $r^2$ between two atoms.
+///
+/// # Implementation Notes
+///
+/// - A branchless selection mechanism is used to switch between the Buckingham and
+///   polynomial forms, making it SIMD-friendly.
+/// - The polynomial is evaluated using Horner's method for improved numerical stability
+///   and reduced floating-point operations.
+/// - The entire computation, including both paths, is executed to avoid pipeline stalls,
+///   making the runtime performance constant and predictable.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct SplinedBuckingham;
+
+impl<T: Real> PairKernel<T> for SplinedBuckingham {
+    type Params = (T, T, T, T, T, T, T, T, T, T);
+
+    /// Computes only the potential energy, selecting between Exp-6 and polynomial forms.
+    ///
+    /// # Formula
+    ///
+    /// $$ E(r) = \begin{cases} A e^{-Br} - C/r^6 & r \ge r_{spline} \\ P_5(r) & r < r_{spline} \end{cases} $$
+    #[inline(always)]
+    fn energy(r_sq: T, params: Self::Params) -> T {
+        let (a, b, c, r_spline_sq, p0, p1, p2, p3, p4, p5) = params;
+
+        let mask = T::from((r_sq >= r_spline_sq) as u8 as f32);
+
+        let r = r_sq.sqrt();
+
+        let inv_r2_long = r_sq.recip();
+        let inv_r6_long = inv_r2_long * inv_r2_long * inv_r2_long;
+        let energy_long = a * T::exp(-b * r) - c * inv_r6_long;
+
+        let energy_short = ((((p5 * r + p4) * r + p3) * r + p2) * r + p1) * r + p0;
+
+        energy_long * mask + energy_short * (T::from(1.0) - mask)
+    }
+
+    /// Computes only the force pre-factor $D$, selecting between Exp-6 and polynomial forms.
+    ///
+    /// # Formula
+    ///
+    /// $$ D(r) = \begin{cases} \frac{A B e^{-B r}}{r} - \frac{6 C}{r^8} & r \ge r_{spline} \\ -\frac{P'_5(r)}{r} & r < r_{spline} \end{cases} $$
+    ///
+    /// This factor is defined such that the force vector can be computed
+    /// by a single vector multiplication: $\vec{F} = D \cdot \vec{r}$.
+    #[inline(always)]
+    fn diff(r_sq: T, params: Self::Params) -> T {
+        let (a, b, c, r_spline_sq, _, p1, p2, p3, p4, p5) = params;
+
+        let mask = T::from((r_sq >= r_spline_sq) as u8 as f32);
+
+        let r = r_sq.sqrt();
+
+        let inv_r2_long = r_sq.recip();
+        let inv_r8_long = inv_r2_long * inv_r2_long * inv_r2_long * inv_r2_long;
+        let diff_long = a * b * T::exp(-b * r) * r.recip() - T::from(6.0) * c * inv_r8_long;
+
+        let r2 = r_sq;
+        let r3 = r2 * r;
+        let r4 = r2 * r2;
+        let poly_deriv = p1
+            + T::from(2.0) * p2 * r
+            + T::from(3.0) * p3 * r2
+            + T::from(4.0) * p4 * r3
+            + T::from(5.0) * p5 * r4;
+        let diff_short = -(poly_deriv * r.recip());
+
+        diff_long * mask + diff_short * (T::from(1.0) - mask)
+    }
+
+    /// Computes both energy and force pre-factor efficiently.
+    ///
+    /// This method reuses intermediate calculations to minimize operations.
+    #[inline(always)]
+    fn compute(r_sq: T, params: Self::Params) -> EnergyDiff<T> {
+        let (a, b, c, r_spline_sq, p0, p1, p2, p3, p4, p5) = params;
+
+        let mask = T::from((r_sq >= r_spline_sq) as u8 as f32);
+
+        let r = r_sq.sqrt();
+
+        let inv_r2_long = r_sq.recip();
+        let inv_r6_long = inv_r2_long * inv_r2_long * inv_r2_long;
+        let exp_term_long = T::exp(-b * r);
+        let energy_long = a * exp_term_long - c * inv_r6_long;
+        let diff_long =
+            (a * b * exp_term_long - T::from(6.0) * c * inv_r6_long * inv_r2_long) * r.recip();
+
+        let energy_short = ((((p5 * r + p4) * r + p3) * r + p2) * r + p1) * r + p0;
+        let r2 = r_sq;
+        let poly_deriv = p1
+            + T::from(2.0) * p2 * r
+            + T::from(3.0) * p3 * r2
+            + T::from(4.0) * p4 * (r2 * r)
+            + T::from(5.0) * p5 * (r2 * r2);
+        let diff_short = -(poly_deriv * r.recip());
+
+        EnergyDiff {
+            energy: energy_long * mask + energy_short * (T::from(1.0) - mask),
+            diff: diff_long * mask + diff_short * (T::from(1.0) - mask),
+        }
+    }
+}
