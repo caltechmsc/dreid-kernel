@@ -47,7 +47,7 @@ impl<T: Real> PairKernel<T> for Coulomb {
     /// $$ D = \frac{Q_{eff}}{r^3} $$
     ///
     /// This factor is defined such that the force vector can be computed
-    /// by a single vector multiplication: $\vec{F} = D \cdot \vec{r}$.
+    /// by a single vector multiplication: $\vec{F} = -D \cdot \vec{r}$.
     #[inline(always)]
     fn diff(r_sq: T, q_product: Self::Params) -> T {
         let inv_r = r_sq.rsqrt();

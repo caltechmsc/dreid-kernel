@@ -53,7 +53,7 @@ impl<T: Real> PairKernel<T> for LennardJones {
     /// $$ D = \frac{12 D_0}{r^2} (s^6 - s^3), \quad \text{where } s = (R_0/r)^2 $$
     ///
     /// This factor is defined such that the force vector can be computed
-    /// by a single vector multiplication: $\vec{F} = D \cdot \vec{r}$.
+    /// by a single vector multiplication: $\vec{F} = -D \cdot \vec{r}$.
     #[inline(always)]
     fn diff(r_sq: T, (d0, r0_sq): Self::Params) -> T {
         let inv_r2 = r_sq.recip();
@@ -149,7 +149,7 @@ impl<T: Real> PairKernel<T> for Buckingham {
     /// $$ D = \frac{A B e^{-B r}}{r} - \frac{6 C}{r^8} $$
     ///
     /// This factor is defined such that the force vector can be computed
-    /// by a single vector multiplication: $\vec{F} = D \cdot \vec{r}$.
+    /// by a single vector multiplication: $\vec{F} = -D \cdot \vec{r}$.
     #[inline(always)]
     fn diff(r_sq: T, (a, b, c, r_fusion_sq): Self::Params) -> T {
         let is_safe = T::from((r_sq >= r_fusion_sq) as u8 as f32);
@@ -283,7 +283,7 @@ impl<T: Real> PairKernel<T> for SplinedBuckingham {
     /// $$ D(r) = \begin{cases} \frac{A B e^{-B r}}{r} - \frac{6 C}{r^8} & r \ge r_{spline} \\ -\frac{P'_5(r)}{r} & r < r_{spline} \end{cases} $$
     ///
     /// This factor is defined such that the force vector can be computed
-    /// by a single vector multiplication: $\vec{F} = D \cdot \vec{r}$.
+    /// by a single vector multiplication: $\vec{F} = -D \cdot \vec{r}$.
     #[inline(always)]
     fn diff(r_sq: T, params: Self::Params) -> T {
         let (a, b, c, r_spline_sq, _, p1, p2, p3, p4, p5) = params;
