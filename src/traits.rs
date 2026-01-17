@@ -84,3 +84,32 @@ pub trait TorsionKernel<T: Real> {
     /// Should share intermediate calculations where possible.
     fn compute(cos_phi: T, sin_phi: T, params: Self::Params) -> EnergyDiff<T>;
 }
+
+// ============================================================================
+// 4. Hybrid Potential (Mixed Interaction)
+// ============================================================================
+
+/// Trait for potentials dependent on both distance and angle (e.g., H-Bonds).
+///
+/// Models interaction energy as a function of squared distance $r^2$ and
+/// cosine of angle $\cos\theta$.
+///
+/// # Mathematical Contract
+/// - **Input**: Squared distance $r^2$ and cosine of angle $\cos\theta$.
+/// - **Output**: Two derivative factors:
+///   1. `force_factor_rad`: Radial part ($1/r \cdot dE/dr$).
+///   2. `force_factor_ang`: Angular part ($-dE/d\cos$).
+pub trait HybridKernel<T: Real> {
+    /// Associated constants/parameters required by the potential.
+    type Params: Copy;
+
+    /// Computes only the potential energy.
+    fn energy(r_sq: T, cos_theta: T, params: Self::Params) -> T;
+
+    /// Computes only the derivative factors.
+    fn diff(r_sq: T, cos_theta: T, params: Self::Params) -> HybridEnergyDiff<T>;
+
+    /// Computes both energy and derivative factors efficiently.
+    /// Should share intermediate calculations where possible.
+    fn compute(r_sq: T, cos_theta: T, params: Self::Params) -> HybridEnergyDiff<T>;
+}
