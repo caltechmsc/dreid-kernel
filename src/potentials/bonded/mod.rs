@@ -1,3 +1,3 @@
 mod stretch;
 
-pub use stretch::Harmonic;
+pub use stretch::{Harmonic, Morse};

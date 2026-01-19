@@ -79,3 +79,87 @@ impl<T: Real> PairKernel<T> for Harmonic {
         EnergyDiff { energy, diff }
     }
 }
+
+/// Morse potential implementation for 1-2 bond stretching.
+///
+/// # Physics
+///
+/// Models bond stretching with anharmonicity, allowing for bond dissociation.
+///
+/// - **Formula**: $$ E = D_e [ e^{-\alpha(R - R_0)} - 1 ]^2 $$
+/// - **Derivative Factor (`diff`)**: $$ D = \frac{2 \alpha D_e e^{-\alpha(R - R_0)} \left( e^{-\alpha(R - R_0)} - 1 \right)}{R} $$
+///
+/// # Parameters
+///
+/// - `de`: Dissociation energy $D_e$.
+/// - `r0`: Equilibrium distance $R_0$.
+/// - `alpha`: Stiffness parameter $\alpha$.
+///
+/// # Inputs
+///
+/// - `r_sq`: Squared distance $r^2$ between two atoms.
+///
+/// # Implementation Notes
+///
+/// - Requires `sqrt` and `exp`.
+/// - More computationally expensive than Harmonic.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct Morse;
+
+impl<T: Real> PairKernel<T> for Morse {
+    type Params = (T, T, T);
+
+    /// Computes only the potential energy.
+    ///
+    /// # Formula
+    ///
+    /// $$ E = D_e [ e^{-\alpha(R - R_0)} - 1 ]^2 $$
+    #[inline(always)]
+    fn energy(r_sq: T, (de, r0, alpha): Self::Params) -> T {
+        let r = r_sq.sqrt();
+        let t_val = T::exp(-alpha * (r - r0));
+        let term = t_val - T::from(1.0);
+
+        de * term * term
+    }
+
+    /// Computes only the force pre-factor $D$.
+    ///
+    /// # Formula
+    ///
+    /// $$ D = \frac{2 \alpha D_e e^{-\alpha(R - R_0)} \left( e^{-\alpha(R - R_0)} - 1 \right)}{R} $$
+    ///
+    /// This factor is defined such that the force vector can be computed
+    /// by a single vector multiplication: $\vec{F} = -D \cdot \vec{r}$.
+    #[inline(always)]
+    fn diff(r_sq: T, (de, r0, alpha): Self::Params) -> T {
+        let inv_r = r_sq.rsqrt();
+        let r = r_sq * inv_r;
+
+        let t_val = T::exp(-alpha * (r - r0));
+        let term_minus_one = t_val - T::from(1.0);
+
+        let f_mag = T::from(2.0) * alpha * de * t_val * term_minus_one;
+
+        f_mag * inv_r
+    }
+
+    /// Computes both energy and force pre-factor efficiently.
+    ///
+    /// This method reuses intermediate calculations to minimize operations.
+    #[inline(always)]
+    fn compute(r_sq: T, (de, r0, alpha): Self::Params) -> EnergyDiff<T> {
+        let inv_r = r_sq.rsqrt();
+        let r = r_sq * inv_r;
+
+        let t_val = T::exp(-alpha * (r - r0));
+        let term_minus_one = t_val - T::from(1.0);
+
+        let energy = de * term_minus_one * term_minus_one;
+
+        let f_mag = T::from(2.0) * alpha * de * t_val * term_minus_one;
+        let diff = f_mag * inv_r;
+
+        EnergyDiff { energy, diff }
+    }
+}
