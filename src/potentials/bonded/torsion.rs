@@ -160,3 +160,255 @@ fn multiple_angle_chebyshev<T: Real>(cos_phi: T, sin_phi: T, n: u8) -> (T, T) {
 
     (cos_prev1, sin_prev1)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use approx::assert_relative_eq;
+    use std::f64::consts::PI;
+
+    // ------------------------------------------------------------------------
+    // Test Constants
+    // ------------------------------------------------------------------------
+
+    const H: f64 = 1e-6;
+    const TOL_DIFF: f64 = 1e-4;
+
+    // ========================================================================
+    // Torsion Tests
+    // ========================================================================
+
+    mod torsion {
+        use super::*;
+
+        const V_HALF: f64 = 2.5; // V/2 = 2.5 kcal/mol
+
+        fn params_n1() -> (f64, u8, f64, f64) {
+            // n=1, phi0=0 => cos(0)=1, sin(0)=0
+            (V_HALF, 1, 1.0, 0.0)
+        }
+
+        fn params_n2() -> (f64, u8, f64, f64) {
+            // n=2, phi0=π => cos(2π)=1, sin(2π)=0
+            (V_HALF, 2, 1.0, 0.0)
+        }
+
+        fn params_n3() -> (f64, u8, f64, f64) {
+            // n=3, phi0=0 => cos(0)=1, sin(0)=0
+            (V_HALF, 3, 1.0, 0.0)
+        }
+
+        fn params_n4() -> (f64, u8, f64, f64) {
+            // n=4, phi0=0 => cos(0)=1, sin(0)=0
+            (V_HALF, 4, 1.0, 0.0)
+        }
+
+        // --------------------------------------------------------------------
+        // 1. Sanity Checks
+        // --------------------------------------------------------------------
+
+        #[test]
+        fn sanity_compute_equals_separate() {
+            let phi = PI / 4.0;
+            let (cos_phi, sin_phi) = (phi.cos(), phi.sin());
+            let p = params_n2();
+
+            let result = Torsion::compute(cos_phi, sin_phi, p);
+            let energy_only = Torsion::energy(cos_phi, sin_phi, p);
+            let diff_only = Torsion::diff(cos_phi, sin_phi, p);
+
+            assert_relative_eq!(result.energy, energy_only, epsilon = 1e-12);
+            assert_relative_eq!(result.diff, diff_only, epsilon = 1e-12);
+        }
+
+        #[test]
+        fn sanity_f32_f64_consistency() {
+            let phi = PI / 3.0;
+            let (cos_phi, sin_phi) = (phi.cos(), phi.sin());
+            let p64 = params_n2();
+            let p32 = (V_HALF as f32, 2u8, 1.0f32, 0.0f32);
+
+            let e64 = Torsion::energy(cos_phi, sin_phi, p64);
+            let e32 = Torsion::energy(cos_phi as f32, sin_phi as f32, p32);
+
+            assert_relative_eq!(e64, e32 as f64, epsilon = 1e-5);
+        }
+
+        #[test]
+        fn sanity_equilibrium_n2() {
+            let (cos_phi, sin_phi) = (1.0_f64, 0.0_f64);
+            let result = Torsion::compute(cos_phi, sin_phi, params_n2());
+
+            assert_relative_eq!(result.energy, 0.0, epsilon = 1e-14);
+            assert_relative_eq!(result.diff, 0.0, epsilon = 1e-14);
+        }
+
+        // --------------------------------------------------------------------
+        // 2. Numerical Stability
+        // --------------------------------------------------------------------
+
+        #[test]
+        fn stability_phi_zero() {
+            let result = Torsion::compute(1.0, 0.0, params_n3());
+
+            assert!(result.energy.is_finite());
+            assert!(result.diff.is_finite());
+        }
+
+        #[test]
+        fn stability_phi_pi() {
+            let result = Torsion::compute(-1.0, 0.0, params_n3());
+
+            assert!(result.energy.is_finite());
+            assert!(result.diff.is_finite());
+        }
+
+        #[test]
+        fn stability_high_periodicity() {
+            let p = (V_HALF, 6u8, 1.0, 0.0);
+            let phi = PI / 5.0;
+            let result = Torsion::compute(phi.cos(), phi.sin(), p);
+
+            assert!(result.energy.is_finite());
+            assert!(result.diff.is_finite());
+        }
+
+        // --------------------------------------------------------------------
+        // 3. Finite Difference Verification
+        // --------------------------------------------------------------------
+
+        fn finite_diff_check(phi: f64, params: (f64, u8, f64, f64)) {
+            let (cos_phi, sin_phi) = (phi.cos(), phi.sin());
+
+            let phi_plus = phi + H;
+            let phi_minus = phi - H;
+            let e_plus = Torsion::energy(phi_plus.cos(), phi_plus.sin(), params);
+            let e_minus = Torsion::energy(phi_minus.cos(), phi_minus.sin(), params);
+            let de_dphi_numerical = (e_plus - e_minus) / (2.0 * H);
+
+            let torque = Torsion::diff(cos_phi, sin_phi, params);
+
+            assert_relative_eq!(de_dphi_numerical, torque, epsilon = TOL_DIFF);
+        }
+
+        #[test]
+        fn finite_diff_n1() {
+            finite_diff_check(PI / 4.0, params_n1());
+        }
+
+        #[test]
+        fn finite_diff_n2() {
+            finite_diff_check(PI / 3.0, params_n2());
+        }
+
+        #[test]
+        fn finite_diff_n3() {
+            finite_diff_check(PI / 6.0, params_n3());
+        }
+
+        #[test]
+        fn finite_diff_n4() {
+            finite_diff_check(PI / 5.0, params_n4());
+        }
+
+        #[test]
+        fn finite_diff_various_phi() {
+            for phi in [0.1, 0.5, 1.0, 2.0, 3.0, 5.0] {
+                finite_diff_check(phi, params_n2());
+            }
+        }
+
+        // --------------------------------------------------------------------
+        // 4. Torsion Specific
+        // --------------------------------------------------------------------
+
+        #[test]
+        fn specific_barrier_height() {
+            let phi = PI;
+            let e = Torsion::energy(phi.cos(), phi.sin(), params_n1());
+
+            assert_relative_eq!(e, 2.0 * V_HALF, epsilon = 1e-10);
+        }
+
+        #[test]
+        fn specific_n_minima() {
+            let p = params_n3();
+            let mut min_count = 0;
+            for i in 0..36 {
+                let phi = i as f64 * PI / 18.0;
+                let e = Torsion::energy(phi.cos(), phi.sin(), p);
+                if e < 0.01 {
+                    min_count += 1;
+                }
+            }
+            assert_eq!(min_count, 3);
+        }
+
+        #[test]
+        fn specific_periodicity() {
+            let phi = 0.5;
+            let p = params_n3();
+            let e1 = Torsion::energy(phi.cos(), phi.sin(), p);
+            let phi2 = phi + 2.0 * PI / 3.0;
+            let e2 = Torsion::energy(phi2.cos(), phi2.sin(), p);
+
+            assert_relative_eq!(e1, e2, epsilon = 1e-10);
+        }
+    }
+
+    // ========================================================================
+    // Multiple Angle Helper Tests
+    // ========================================================================
+
+    mod multiple_angle_tests {
+        use super::*;
+
+        fn check_multiple_angle(phi: f64, n: u8) {
+            let (cos_phi, sin_phi) = (phi.cos(), phi.sin());
+            let (cos_n, sin_n) = multiple_angle(cos_phi, sin_phi, n);
+
+            let expected_cos = (n as f64 * phi).cos();
+            let expected_sin = (n as f64 * phi).sin();
+
+            assert_relative_eq!(cos_n, expected_cos, epsilon = 1e-10);
+            assert_relative_eq!(sin_n, expected_sin, epsilon = 1e-10);
+        }
+
+        #[test]
+        fn multiple_angle_n0() {
+            let (cos_n, sin_n) = multiple_angle(0.5_f64, 0.866, 0);
+            assert_relative_eq!(cos_n, 1.0, epsilon = 1e-14);
+            assert_relative_eq!(sin_n, 0.0, epsilon = 1e-14);
+        }
+
+        #[test]
+        fn multiple_angle_n1() {
+            let phi = PI / 4.0;
+            check_multiple_angle(phi, 1);
+        }
+
+        #[test]
+        fn multiple_angle_n2() {
+            let phi = PI / 3.0;
+            check_multiple_angle(phi, 2);
+        }
+
+        #[test]
+        fn multiple_angle_n3() {
+            let phi = PI / 5.0;
+            check_multiple_angle(phi, 3);
+        }
+
+        #[test]
+        fn multiple_angle_n4_chebyshev() {
+            let phi = PI / 6.0;
+            check_multiple_angle(phi, 4);
+        }
+
+        #[test]
+        fn multiple_angle_n6_chebyshev() {
+            let phi = PI / 7.0;
+            check_multiple_angle(phi, 6);
+        }
+    }
+}
