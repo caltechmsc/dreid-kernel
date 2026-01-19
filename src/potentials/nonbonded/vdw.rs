@@ -355,3 +355,569 @@ impl<T: Real> PairKernel<T> for SplinedBuckingham {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use approx::assert_relative_eq;
+
+    // ------------------------------------------------------------------------
+    // Test Constants
+    // ------------------------------------------------------------------------
+
+    const H: f64 = 1e-6;
+    const TOL_DIFF: f64 = 1e-4;
+
+    // Typical LJ parameters: D0 = 0.1 kcal/mol, R0 = 3.5 Å
+    const D0: f64 = 0.1;
+    const R0: f64 = 3.5;
+    const R0_SQ: f64 = R0 * R0;
+
+    // Buckingham parameters: A, B, C, r_fusion_sq
+    const BUCK_A: f64 = 1000.0;
+    const BUCK_B: f64 = 3.0;
+    const BUCK_C: f64 = 50.0;
+    const BUCK_FUSION_SQ: f64 = 0.5;
+
+    // ========================================================================
+    // Lennard-Jones Tests
+    // ========================================================================
+
+    mod lennard_jones {
+        use super::*;
+
+        // --------------------------------------------------------------------
+        // 1. Sanity Checks
+        // --------------------------------------------------------------------
+
+        #[test]
+        fn sanity_compute_equals_separate() {
+            let r_sq = 9.0_f64;
+            let params = (D0, R0_SQ);
+
+            let result = LennardJones::compute(r_sq, params);
+            let energy_only = LennardJones::energy(r_sq, params);
+            let diff_only = LennardJones::diff(r_sq, params);
+
+            assert_relative_eq!(result.energy, energy_only, epsilon = 1e-14);
+            assert_relative_eq!(result.diff, diff_only, epsilon = 1e-14);
+        }
+
+        #[test]
+        fn sanity_f32_f64_consistency() {
+            let r_sq_64 = 12.25_f64;
+            let r_sq_32 = 12.25_f32;
+            let params_64 = (D0, R0_SQ);
+            let params_32 = (D0 as f32, R0_SQ as f32);
+
+            let e64 = LennardJones::energy(r_sq_64, params_64);
+            let e32 = LennardJones::energy(r_sq_32, params_32);
+
+            assert_relative_eq!(e64, e32 as f64, epsilon = 1e-5);
+        }
+
+        #[test]
+        fn sanity_equilibrium_energy_minimum() {
+            let e = LennardJones::energy(R0_SQ, (D0, R0_SQ));
+            assert_relative_eq!(e, -D0, epsilon = 1e-10);
+        }
+
+        #[test]
+        fn sanity_equilibrium_zero_force() {
+            let d = LennardJones::diff(R0_SQ, (D0, R0_SQ));
+            assert_relative_eq!(d, 0.0, epsilon = 1e-10);
+        }
+
+        // --------------------------------------------------------------------
+        // 2. Numerical Stability
+        // --------------------------------------------------------------------
+
+        #[test]
+        fn stability_large_distance() {
+            let r_sq = 1e6_f64;
+            let result = LennardJones::compute(r_sq, (D0, R0_SQ));
+
+            assert!(result.energy.is_finite());
+            assert!(result.diff.is_finite());
+            assert!(result.energy.abs() < 1e-10);
+        }
+
+        #[test]
+        fn stability_small_distance() {
+            let r_sq = 1.0_f64;
+            let result = LennardJones::compute(r_sq, (D0, R0_SQ));
+
+            assert!(result.energy.is_finite());
+            assert!(result.diff.is_finite());
+            assert!(result.energy > 0.0);
+        }
+
+        // --------------------------------------------------------------------
+        // 3. Finite Difference Verification
+        // --------------------------------------------------------------------
+
+        fn finite_diff_check(r: f64, params: (f64, f64)) {
+            let r_sq = r * r;
+
+            let r_plus = r + H;
+            let r_minus = r - H;
+            let e_plus = LennardJones::energy(r_plus * r_plus, params);
+            let e_minus = LennardJones::energy(r_minus * r_minus, params);
+            let de_dr_numerical = (e_plus - e_minus) / (2.0 * H);
+
+            let d_analytic = LennardJones::diff(r_sq, params);
+            let de_dr_analytic = -d_analytic * r;
+
+            assert_relative_eq!(de_dr_numerical, de_dr_analytic, epsilon = TOL_DIFF);
+        }
+
+        #[test]
+        fn finite_diff_repulsion_region() {
+            finite_diff_check(2.5, (D0, R0_SQ));
+        }
+
+        #[test]
+        fn finite_diff_equilibrium_region() {
+            finite_diff_check(R0, (D0, R0_SQ));
+        }
+
+        #[test]
+        fn finite_diff_attraction_region() {
+            finite_diff_check(5.0, (D0, R0_SQ));
+        }
+
+        #[test]
+        fn finite_diff_long_range() {
+            finite_diff_check(10.0, (D0, R0_SQ));
+        }
+
+        // --------------------------------------------------------------------
+        // 4. LJ-Specific: Physical Behavior
+        // --------------------------------------------------------------------
+
+        #[test]
+        fn specific_repulsion_positive_energy() {
+            let e = LennardJones::energy(4.0, (D0, R0_SQ));
+            assert!(e > 0.0);
+        }
+
+        #[test]
+        fn specific_attraction_negative_energy() {
+            let e = LennardJones::energy(25.0, (D0, R0_SQ));
+            assert!(e < 0.0);
+        }
+
+        #[test]
+        fn specific_diff_sign_repulsion() {
+            let d = LennardJones::diff(4.0, (D0, R0_SQ));
+            assert!(d > 0.0);
+        }
+
+        #[test]
+        fn specific_diff_sign_attraction() {
+            let d = LennardJones::diff(25.0, (D0, R0_SQ));
+            assert!(d < 0.0);
+        }
+    }
+
+    // ========================================================================
+    // Buckingham Tests
+    // ========================================================================
+
+    mod buckingham {
+        use super::*;
+
+        fn params() -> (f64, f64, f64, f64) {
+            (BUCK_A, BUCK_B, BUCK_C, BUCK_FUSION_SQ)
+        }
+
+        // --------------------------------------------------------------------
+        // 1. Sanity Checks
+        // --------------------------------------------------------------------
+
+        #[test]
+        fn sanity_compute_equals_separate() {
+            let r_sq = 4.0_f64;
+            let p = params();
+
+            let result = Buckingham::compute(r_sq, p);
+            let energy_only = Buckingham::energy(r_sq, p);
+            let diff_only = Buckingham::diff(r_sq, p);
+
+            assert_relative_eq!(result.energy, energy_only, epsilon = 1e-12);
+            assert_relative_eq!(result.diff, diff_only, epsilon = 1e-12);
+        }
+
+        #[test]
+        fn sanity_f32_f64_consistency() {
+            let r_sq = 4.0;
+            let p64 = params();
+            let p32 = (
+                BUCK_A as f32,
+                BUCK_B as f32,
+                BUCK_C as f32,
+                BUCK_FUSION_SQ as f32,
+            );
+
+            let e64 = Buckingham::energy(r_sq, p64);
+            let e32 = Buckingham::energy(r_sq as f32, p32);
+
+            assert_relative_eq!(e64, e32 as f64, epsilon = 1e-3);
+        }
+
+        // --------------------------------------------------------------------
+        // 2. Numerical Stability
+        // --------------------------------------------------------------------
+
+        #[test]
+        fn stability_fusion_region() {
+            let r_sq = 0.1_f64;
+            let result = Buckingham::compute(r_sq, params());
+
+            assert!(result.energy.is_finite());
+            assert!(result.diff.is_finite());
+            assert!(result.energy > 1e5);
+        }
+
+        #[test]
+        fn stability_large_distance() {
+            let r_sq = 1e4_f64;
+            let result = Buckingham::compute(r_sq, params());
+
+            assert!(result.energy.is_finite());
+            assert!(result.diff.is_finite());
+        }
+
+        // --------------------------------------------------------------------
+        // 3. Finite Difference Verification
+        // --------------------------------------------------------------------
+
+        fn finite_diff_check(r: f64) {
+            let p = params();
+            let r_sq = r * r;
+
+            let r_plus = r + H;
+            let r_minus = r - H;
+            let e_plus = Buckingham::energy(r_plus * r_plus, p);
+            let e_minus = Buckingham::energy(r_minus * r_minus, p);
+            let de_dr_numerical = (e_plus - e_minus) / (2.0 * H);
+
+            let d_analytic = Buckingham::diff(r_sq, p);
+            let de_dr_analytic = -d_analytic * r;
+
+            assert_relative_eq!(de_dr_numerical, de_dr_analytic, epsilon = TOL_DIFF);
+        }
+
+        #[test]
+        fn finite_diff_short_range() {
+            finite_diff_check(1.5);
+        }
+
+        #[test]
+        fn finite_diff_medium_range() {
+            finite_diff_check(3.0);
+        }
+
+        #[test]
+        fn finite_diff_long_range() {
+            finite_diff_check(8.0);
+        }
+
+        // --------------------------------------------------------------------
+        // 4. Buckingham-Specific
+        // --------------------------------------------------------------------
+
+        #[test]
+        fn specific_exponential_dominates_short_range() {
+            let e1 = Buckingham::energy(0.81, params());
+            let e2 = Buckingham::energy(1.0, params());
+            assert!(e1.is_finite());
+            assert!(e2.is_finite());
+        }
+    }
+
+    // ========================================================================
+    // SplinedBuckingham Tests
+    // ========================================================================
+
+    mod splined_buckingham {
+        use super::*;
+
+        fn params() -> (f64, f64, f64, f64, f64, f64, f64, f64, f64, f64) {
+            let a = 1000.0;
+            let b = 3.0;
+            let c = 50.0;
+            let r_spline_sq = 1.0;
+
+            let p0 = 100.0;
+            let p1 = -50.0;
+            let p2 = 10.0;
+            let p3 = 0.0;
+            let p4 = 0.0;
+            let p5 = 0.0;
+
+            (a, b, c, r_spline_sq, p0, p1, p2, p3, p4, p5)
+        }
+
+        // --------------------------------------------------------------------
+        // 1. Sanity Checks
+        // --------------------------------------------------------------------
+
+        #[test]
+        fn sanity_compute_equals_separate() {
+            let r_sq = 4.0_f64;
+            let p = params();
+
+            let result = SplinedBuckingham::compute(r_sq, p);
+            let energy_only = SplinedBuckingham::energy(r_sq, p);
+            let diff_only = SplinedBuckingham::diff(r_sq, p);
+
+            assert_relative_eq!(result.energy, energy_only, epsilon = 1e-12);
+            assert_relative_eq!(result.diff, diff_only, epsilon = 1e-12);
+        }
+
+        // --------------------------------------------------------------------
+        // 2. Numerical Stability
+        // --------------------------------------------------------------------
+
+        #[test]
+        fn stability_inside_spline_region() {
+            let r_sq = 0.25_f64;
+            let result = SplinedBuckingham::compute(r_sq, params());
+
+            assert!(result.energy.is_finite());
+            assert!(result.diff.is_finite());
+        }
+
+        #[test]
+        fn stability_outside_spline_region() {
+            let r_sq = 4.0_f64;
+            let result = SplinedBuckingham::compute(r_sq, params());
+
+            assert!(result.energy.is_finite());
+            assert!(result.diff.is_finite());
+        }
+
+        // --------------------------------------------------------------------
+        // 3. Finite Difference Verification
+        // --------------------------------------------------------------------
+
+        fn finite_diff_check(r: f64) {
+            let p = params();
+            let r_sq = r * r;
+
+            let r_plus = r + H;
+            let r_minus = r - H;
+            let e_plus = SplinedBuckingham::energy(r_plus * r_plus, p);
+            let e_minus = SplinedBuckingham::energy(r_minus * r_minus, p);
+            let de_dr_numerical = (e_plus - e_minus) / (2.0 * H);
+
+            let d_analytic = SplinedBuckingham::diff(r_sq, p);
+            let de_dr_analytic = -d_analytic * r;
+
+            assert_relative_eq!(de_dr_numerical, de_dr_analytic, epsilon = TOL_DIFF);
+        }
+
+        #[test]
+        fn finite_diff_inside_spline() {
+            finite_diff_check(0.5);
+        }
+
+        #[test]
+        fn finite_diff_outside_spline() {
+            finite_diff_check(2.0);
+        }
+
+        #[test]
+        fn finite_diff_long_range() {
+            finite_diff_check(5.0);
+        }
+
+        // --------------------------------------------------------------------
+        // 4. Spline-Specific: Region Selection
+        // --------------------------------------------------------------------
+
+        #[test]
+        fn specific_uses_polynomial_inside() {
+            let p = params();
+            let r_sq = 0.25_f64;
+
+            let r = r_sq.sqrt();
+            let expected = p.4 + p.5 * r + p.6 * r * r;
+            let actual = SplinedBuckingham::energy(r_sq, p);
+
+            assert_relative_eq!(actual, expected, epsilon = 1e-10);
+        }
+
+        fn c2_continuous_params() -> (f64, f64, f64, f64, f64, f64, f64, f64, f64, f64) {
+            let a = 1000.0_f64;
+            let b = 3.0_f64;
+            let c = 50.0_f64;
+            let r_s = 1.2_f64;
+            let r_spline_sq = r_s * r_s;
+
+            let exp_term = (-b * r_s).exp();
+            let inv_r = 1.0 / r_s;
+            let inv_r2 = inv_r * inv_r;
+            let inv_r6 = inv_r2 * inv_r2 * inv_r2;
+            let inv_r7 = inv_r6 * inv_r;
+            let inv_r8 = inv_r6 * inv_r2;
+
+            let e_s = a * exp_term - c * inv_r6;
+            let de_s = -a * b * exp_term + 6.0 * c * inv_r7;
+            let d2e_s = a * b * b * exp_term - 42.0 * c * inv_r8;
+
+            let e_max = 1e4_f64;
+            let p0 = e_max;
+            let p1 = 0.0;
+            let p5 = 0.0;
+
+            let r2 = r_s * r_s;
+            let r3 = r2 * r_s;
+            let r4 = r2 * r2;
+
+            let rhs1 = e_s - p0;
+            let rhs2 = de_s;
+            let rhs3 = d2e_s;
+
+            let det = r2 * (3.0 * r2 * 12.0 * r2 - 4.0 * r3 * 6.0 * r_s)
+                - r3 * (2.0 * r_s * 12.0 * r2 - 4.0 * r3 * 2.0)
+                + r4 * (2.0 * r_s * 6.0 * r_s - 3.0 * r2 * 2.0);
+
+            let det_p2 = rhs1 * (3.0 * r2 * 12.0 * r2 - 4.0 * r3 * 6.0 * r_s)
+                - r3 * (rhs2 * 12.0 * r2 - 4.0 * r3 * rhs3)
+                + r4 * (rhs2 * 6.0 * r_s - 3.0 * r2 * rhs3);
+
+            let det_p3 = r2 * (rhs2 * 12.0 * r2 - 4.0 * r3 * rhs3)
+                - rhs1 * (2.0 * r_s * 12.0 * r2 - 4.0 * r3 * 2.0)
+                + r4 * (2.0 * r_s * rhs3 - rhs2 * 2.0);
+
+            let det_p4 = r2 * (3.0 * r2 * rhs3 - rhs2 * 6.0 * r_s)
+                - r3 * (2.0 * r_s * rhs3 - rhs2 * 2.0)
+                + rhs1 * (2.0 * r_s * 6.0 * r_s - 3.0 * r2 * 2.0);
+
+            let p2 = det_p2 / det;
+            let p3 = det_p3 / det;
+            let p4 = det_p4 / det;
+
+            (a, b, c, r_spline_sq, p0, p1, p2, p3, p4, p5)
+        }
+
+        #[test]
+        fn verify_spline_coefficients() {
+            let p = c2_continuous_params();
+            let (a, b, c, r_spline_sq, p0, p1, p2, p3, p4, p5) = p;
+            let r_s = r_spline_sq.sqrt();
+
+            let exp_term = (-b * r_s).exp();
+            let inv_r = 1.0 / r_s;
+            let inv_r2 = inv_r * inv_r;
+            let inv_r6 = inv_r2 * inv_r2 * inv_r2;
+            let inv_r7 = inv_r6 * inv_r;
+            let inv_r8 = inv_r6 * inv_r2;
+
+            let e_buck = a * exp_term - c * inv_r6;
+            let de_buck = -a * b * exp_term + 6.0 * c * inv_r7;
+            let d2e_buck = a * b * b * exp_term - 42.0 * c * inv_r8;
+
+            let r2 = r_s * r_s;
+            let r3 = r2 * r_s;
+            let r4 = r2 * r2;
+            let r5 = r4 * r_s;
+
+            let e_poly = p0 + p1 * r_s + p2 * r2 + p3 * r3 + p4 * r4 + p5 * r5;
+            let de_poly = p1 + 2.0 * p2 * r_s + 3.0 * p3 * r2 + 4.0 * p4 * r3 + 5.0 * p5 * r4;
+            let d2e_poly = 2.0 * p2 + 6.0 * p3 * r_s + 12.0 * p4 * r2 + 20.0 * p5 * r3;
+
+            assert_relative_eq!(e_poly, e_buck, epsilon = 1e-8);
+            assert_relative_eq!(de_poly, de_buck, epsilon = 1e-8);
+            assert_relative_eq!(d2e_poly, d2e_buck, epsilon = 1e-8);
+        }
+
+        #[test]
+        fn continuity_c0_energy_at_boundary() {
+            let p = c2_continuous_params();
+            let r_spline_sq = p.3;
+            let r_s = r_spline_sq.sqrt();
+            let eps = 1e-8;
+
+            let r_inside = r_s - eps;
+            let r_outside = r_s + eps;
+
+            let e_inside = SplinedBuckingham::energy(r_inside * r_inside, p);
+            let e_outside = SplinedBuckingham::energy(r_outside * r_outside, p);
+
+            assert_relative_eq!(e_inside, e_outside, epsilon = 1e-4);
+        }
+
+        #[test]
+        fn continuity_c1_force_at_boundary() {
+            let p = c2_continuous_params();
+            let r_spline_sq = p.3;
+            let r_s = r_spline_sq.sqrt();
+            let eps = 1e-8;
+
+            let r_inside = r_s - eps;
+            let r_outside = r_s + eps;
+
+            let d_inside = SplinedBuckingham::diff(r_inside * r_inside, p);
+            let d_outside = SplinedBuckingham::diff(r_outside * r_outside, p);
+
+            let de_dr_inside = -d_inside * r_inside;
+            let de_dr_outside = -d_outside * r_outside;
+
+            assert_relative_eq!(de_dr_inside, de_dr_outside, epsilon = 1e-3);
+        }
+
+        #[test]
+        fn continuity_c2_second_derivative_at_boundary() {
+            let p = c2_continuous_params();
+            let (a, b, c, r_spline_sq, _p0, _p1, p2, p3, p4, p5) = p;
+            let r_s = r_spline_sq.sqrt();
+
+            let exp_term = (-b * r_s).exp();
+            let inv_r8 = 1.0 / r_s.powi(8);
+            let d2e_buck_analytical = a * b * b * exp_term - 42.0 * c * inv_r8;
+
+            let d2e_poly_analytical =
+                2.0 * p2 + 6.0 * p3 * r_s + 12.0 * p4 * r_s * r_s + 20.0 * p5 * r_s.powi(3);
+
+            assert_relative_eq!(d2e_poly_analytical, d2e_buck_analytical, epsilon = 1e-6);
+
+            let h = 1e-6;
+
+            let e_m = SplinedBuckingham::energy((r_s - h).powi(2), p);
+            let e_0 = SplinedBuckingham::energy(r_s.powi(2), p);
+            let e_p = SplinedBuckingham::energy((r_s + h).powi(2), p);
+            let d2e_numerical_straddling = (e_p - 2.0 * e_0 + e_m) / (h * h);
+
+            let relative_error =
+                (d2e_numerical_straddling - d2e_buck_analytical).abs() / d2e_buck_analytical.abs();
+            assert!(
+                relative_error < 0.1,
+                "C² continuity check: relative error {} > 0.1",
+                relative_error
+            );
+        }
+
+        #[test]
+        fn continuity_finite_diff_across_boundary() {
+            let p = c2_continuous_params();
+            let r_s = p.3.sqrt();
+
+            let r = r_s;
+            let r_sq = r * r;
+
+            let r_plus = r + H;
+            let r_minus = r - H;
+            let e_plus = SplinedBuckingham::energy(r_plus * r_plus, p);
+            let e_minus = SplinedBuckingham::energy(r_minus * r_minus, p);
+            let de_dr_numerical = (e_plus - e_minus) / (2.0 * H);
+
+            let d_analytic = SplinedBuckingham::diff(r_sq, p);
+            let de_dr_analytic = -d_analytic * r;
+
+            assert_relative_eq!(de_dr_numerical, de_dr_analytic, epsilon = TOL_DIFF);
+        }
+    }
+}
