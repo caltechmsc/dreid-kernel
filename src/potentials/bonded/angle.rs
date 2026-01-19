@@ -94,7 +94,6 @@ impl<T: Real> AngleKernel<T> for CosineHarmonic {
 ///
 /// - Uses `k_half` to save one multiplication in the energy step.
 /// - Handles $\theta=0$ and $\theta=\pi$ analytically using L'Hopital's rule.
-/// - Branchless and panic-free.
 /// - Needs a single `acos` call for angle calculation.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct ThetaHarmonic;
