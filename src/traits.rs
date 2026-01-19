@@ -107,7 +107,8 @@ pub trait HybridKernel<T: Real> {
     fn energy(r_sq: T, cos_theta: T, params: Self::Params) -> T;
 
     /// Computes only the derivative factors.
-    fn diff(r_sq: T, cos_theta: T, params: Self::Params) -> HybridEnergyDiff<T>;
+    /// Computes only the derivative factors `(force_factor_rad, force_factor_ang)`.
+    fn diff(r_sq: T, cos_theta: T, params: Self::Params) -> (T, T);
 
     /// Computes both energy and derivative factors efficiently.
     /// Should share intermediate calculations where possible.
