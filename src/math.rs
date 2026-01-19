@@ -18,6 +18,9 @@ pub trait Real:
     + core::ops::Neg<Output = Self>
     + From<f32>
 {
+    // Constants
+    fn pi() -> Self;
+
     // Basic functions
     fn sqrt(self) -> Self;
     fn recip(self) -> Self;
@@ -43,6 +46,11 @@ pub trait Real:
 // ============================================================================
 
 impl Real for f32 {
+    #[inline(always)]
+    fn pi() -> Self {
+        core::f32::consts::PI
+    }
+
     #[inline(always)]
     fn sqrt(self) -> Self {
         #[cfg(feature = "std")]
@@ -150,6 +158,11 @@ impl Real for f32 {
 // ============================================================================
 
 impl Real for f64 {
+    #[inline(always)]
+    fn pi() -> Self {
+        core::f64::consts::PI
+    }
+
     #[inline(always)]
     fn sqrt(self) -> Self {
         #[cfg(feature = "std")]
