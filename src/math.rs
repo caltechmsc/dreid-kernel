@@ -23,6 +23,7 @@ pub trait Real:
     fn recip(self) -> Self;
     fn abs(self) -> Self;
     fn max(self, other: Self) -> Self;
+    fn min(self, other: Self) -> Self;
 
     // Transcendental functions
     fn exp(self) -> Self;
@@ -80,6 +81,18 @@ impl Real for f32 {
         #[cfg(not(feature = "std"))]
         {
             if self > other { self } else { other }
+        }
+    }
+
+    #[inline(always)]
+    fn min(self, other: Self) -> Self {
+        #[cfg(feature = "std")]
+        {
+            self.min(other)
+        }
+        #[cfg(not(feature = "std"))]
+        {
+            if self < other { self } else { other }
         }
     }
 
@@ -175,6 +188,18 @@ impl Real for f64 {
         #[cfg(not(feature = "std"))]
         {
             if self > other { self } else { other }
+        }
+    }
+
+    #[inline(always)]
+    fn min(self, other: Self) -> Self {
+        #[cfg(feature = "std")]
+        {
+            self.min(other)
+        }
+        #[cfg(not(feature = "std"))]
+        {
+            if self < other { self } else { other }
         }
     }
 
