@@ -1,6 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-//! # DREID-kernel
+//! # DREID-Kernel
 //!
 //! **A high-performance, no-std Rust library providing pure mathematical primitives
 //! and stateless energy kernels for the DREIDING force field.**
