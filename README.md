@@ -45,7 +45,7 @@ let energy = LennardJones::energy(r_sq, params);
 let diff = LennardJones::diff(r_sq, params);
 
 // Compute Both (Optimized)
-let (e, d) = LennardJones::compute(r_sq, params);
+let result = LennardJones::compute(r_sq, params);
 ```
 
 ### Example: Torsion Angle
