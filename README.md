@@ -80,6 +80,16 @@ Run the full verification suite:
 cargo test
 ```
 
+## Architecture
+
+The force calculation follows a two-layer design:
+
+1. **Kernel Layer** (this crate): Computes scalar energy and derivative factors.
+2. **Geometry Layer** (your code): Applies `F += -Factor * GeometricVector`.
+
+This separation allows the kernel to be completely geometry-agnostic,
+enabling use in periodic boundary conditions, minimization, or MD without modification.
+
 ## Performance
 
 We benchmark every kernel using rigorous statistical sampling (via `criterion`). Benchmarks prevent compiler optimizations from eliding calculations (`black_box`) to measure true instruction throughput.
