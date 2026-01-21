@@ -111,6 +111,8 @@
 //! | Torsion (n=3) | 2.55 ns | ~390 Million ops/sec |
 //!
 //! See [`BENCHMARKS.md`](https://github.com/caltechmsc/dreid-kernel/blob/main/BENCHMARKS.md) for complete data.
+//!
+//! **Made with ❤️ for the scientific computing community**
 
 mod math;
 mod traits;
