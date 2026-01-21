@@ -27,10 +27,15 @@ libm = { version = "0.2.15", optional = true }
 
 [dev-dependencies]
 approx = "0.5.1"
+criterion = "0.8.1"
 
 [lib]
 name = "dreid_kernel"
 path = "src/lib.rs"
+
+[[bench]]
+name = "benchmark"
+harness = false
 
 [features]
 default = ["std"]
