@@ -96,12 +96,12 @@ We benchmark every kernel using rigorous statistical sampling (via `criterion`).
 
 **Summary of Results (Intel Core i7-13620H) - Single Threaded:**
 
-| Interaction   | Kernel           | Combined Time | Throughput     |
-| :------------ | :--------------- | :------------ | :------------- |
-| **Angle**     | Cosine Harmonic  | **0.70 ns**   | ~1.4 Billion/s |
-| **vdW**       | Lennard-Jones    | **1.19 ns**   | ~840 Million/s |
-| **Structure** | Harmonic Stretch | **2.20 ns**   | ~450 Million/s |
-| **Dihedral**  | Torsion (n=3)    | **2.55 ns**   | ~390 Million/s |
+| Interaction  | Kernel           | Combined Time | Throughput     |
+| :----------- | :--------------- | :------------ | :------------- |
+| **Angle**    | Cosine Harmonic  | **0.70 ns**   | ~1.4 Billion/s |
+| **vdW**      | Lennard-Jones    | **1.19 ns**   | ~840 Million/s |
+| **Stretch**  | Harmonic Stretch | **2.20 ns**   | ~450 Million/s |
+| **Dihedral** | Torsion (n=3)    | **2.55 ns**   | ~390 Million/s |
 
 > For the complete data set, including hardware specifications, methodology, and analysis of `exp()` vs polynomial costs, see [**BENCHMARKS.md**](BENCHMARKS.md).
 
