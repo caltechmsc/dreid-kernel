@@ -16,7 +16,7 @@ The DREIDING force field kernel achieves extreme throughput by leveraging zero-c
 **Legend:**
 
 - **Energy**: Time to compute potential energy only ($E$).
-- **Force**: Time to compute the force prefactor only ($-\frac{1}{r}\frac{dE}{dr}$).
+- **Force**: Time to compute the force/derivative factor only (e.g., $-\frac{1}{r}\frac{dE}{dr}$ or $\frac{dE}{dq}$).
 - **Combined**: Time to compute both simultaneously. This utilizes shared sub-expressions (instruction-level optimization).
 - **Throughput**: Based on the _Combined_ calculation time.
 
