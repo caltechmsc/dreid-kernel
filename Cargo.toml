@@ -27,7 +27,6 @@ libm = { version = "0.2.15", optional = true }
 
 [dev-dependencies]
 approx = "0.5.1"
-nalgebra = "0.34.1"
 
 [lib]
 name = "dreid_kernel"
