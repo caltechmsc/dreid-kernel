@@ -23,11 +23,11 @@ readme = "README.md"
 rustdoc-args = ["--html-in-header", "katex-header.html"]
 
 [dependencies]
-libm = { version = "0.2.15", optional = true }
+libm = { version = "0.2.16", optional = true }
 
 [dev-dependencies]
 approx = "0.5.1"
-criterion = "0.8.1"
+criterion = "0.8.2"
 
 [lib]
 name = "dreid_kernel"
