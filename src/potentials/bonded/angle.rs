@@ -407,6 +407,132 @@ mod tests {
     }
 
     // ========================================================================
+    // CosineLinear Tests
+    // ========================================================================
+
+    mod cosine_linear {
+        use super::*;
+
+        const K: f64 = 100.0; // K = 100
+
+        fn params() -> f64 {
+            K
+        }
+
+        // --------------------------------------------------------------------
+        // 1. Sanity Checks
+        // --------------------------------------------------------------------
+
+        #[test]
+        fn sanity_compute_equals_separate() {
+            let cos_theta = 0.3_f64;
+            let p = params();
+
+            let result = CosineLinear::compute(cos_theta, p);
+            let energy_only = CosineLinear::energy(cos_theta, p);
+            let diff_only = CosineLinear::diff(cos_theta, p);
+
+            assert_relative_eq!(result.energy, energy_only, epsilon = 1e-12);
+            assert_relative_eq!(result.diff, diff_only, epsilon = 1e-12);
+        }
+
+        #[test]
+        fn sanity_f32_f64_consistency() {
+            let cos_theta = -0.3;
+            let p64 = params();
+            let p32 = K as f32;
+
+            let e64 = CosineLinear::energy(cos_theta, p64);
+            let e32 = CosineLinear::energy(cos_theta as f32, p32);
+
+            assert_relative_eq!(e64, e32 as f64, epsilon = 1e-5);
+        }
+
+        #[test]
+        fn sanity_equilibrium() {
+            let result = CosineLinear::compute(-1.0, params());
+
+            assert_relative_eq!(result.energy, 0.0, epsilon = 1e-14);
+            assert_relative_eq!(result.diff, K, epsilon = 1e-14);
+        }
+
+        // --------------------------------------------------------------------
+        // 2. Numerical Stability
+        // --------------------------------------------------------------------
+
+        #[test]
+        fn stability_cos_one() {
+            let result = CosineLinear::compute(1.0, params());
+
+            assert!(result.energy.is_finite());
+            assert!(result.diff.is_finite());
+        }
+
+        #[test]
+        fn stability_cos_minus_one() {
+            let result = CosineLinear::compute(-1.0, params());
+
+            assert!(result.energy.is_finite());
+            assert!(result.diff.is_finite());
+        }
+
+        // --------------------------------------------------------------------
+        // 3. Finite Difference Verification
+        // --------------------------------------------------------------------
+
+        fn finite_diff_check(cos_theta: f64) {
+            let p = params();
+
+            let c_plus = cos_theta + H;
+            let c_minus = cos_theta - H;
+            let e_plus = CosineLinear::energy(c_plus, p);
+            let e_minus = CosineLinear::energy(c_minus, p);
+            let de_dcos_numerical = (e_plus - e_minus) / (2.0 * H);
+
+            let gamma = CosineLinear::diff(cos_theta, p);
+
+            assert_relative_eq!(de_dcos_numerical, gamma, epsilon = TOL_DIFF);
+        }
+
+        #[test]
+        fn finite_diff_acute() {
+            finite_diff_check(0.3);
+        }
+
+        #[test]
+        fn finite_diff_obtuse() {
+            finite_diff_check(-0.5);
+        }
+
+        #[test]
+        fn finite_diff_near_equilibrium() {
+            finite_diff_check(-0.99);
+        }
+
+        // --------------------------------------------------------------------
+        // 4. CosineLinear Specific
+        // --------------------------------------------------------------------
+
+        #[test]
+        fn specific_linear_scaling() {
+            let e1 = CosineLinear::energy(0.0, params());
+            let e2 = CosineLinear::energy(-0.5, params());
+
+            assert_relative_eq!(e1 / e2, 2.0, epsilon = 1e-10);
+        }
+
+        #[test]
+        fn specific_constant_derivative() {
+            let p = params();
+
+            assert_relative_eq!(CosineLinear::diff(1.0, p), K, epsilon = 1e-14);
+            assert_relative_eq!(CosineLinear::diff(0.0, p), K, epsilon = 1e-14);
+            assert_relative_eq!(CosineLinear::diff(-0.5, p), K, epsilon = 1e-14);
+            assert_relative_eq!(CosineLinear::diff(-1.0, p), K, epsilon = 1e-14);
+        }
+    }
+
+    // ========================================================================
     // ThetaHarmonic Tests
     // ========================================================================
 
