@@ -12,6 +12,7 @@
 //! ## 2. Angle Bend (3-body)
 //! Interactions defined by the angle between two bonds sharing a common atom.
 //! - [`CosineHarmonic`]: Harmonic in cosine of the angle.
+//! - [`CosineLinear`]: Linear in cosine for linear geometries ($\theta_0 = 180°$).
 //! - [`ThetaHarmonic`]: Harmonic in the angle itself.
 //!
 //! ## 3. Torsion (4-body)
@@ -28,7 +29,7 @@ mod inversion;
 mod stretch;
 mod torsion;
 
-pub use angle::{CosineHarmonic, ThetaHarmonic};
+pub use angle::{CosineHarmonic, CosineLinear, ThetaHarmonic};
 pub use inversion::{PlanarInversion, UmbrellaInversion};
 pub use stretch::{Harmonic, Morse};
 pub use torsion::Torsion;

@@ -46,6 +46,7 @@
 //! | Stretch | [`Harmonic`](potentials::bonded::Harmonic) | Harmonic spring |
 //! | Stretch | [`Morse`](potentials::bonded::Morse) | Anharmonic with dissociation |
 //! | Angle | [`CosineHarmonic`](potentials::bonded::CosineHarmonic) | Harmonic in $\cos\theta$ |
+//! | Angle | [`CosineLinear`](potentials::bonded::CosineLinear) | Linear for $\theta_0 = 180°$ |
 //! | Angle | [`ThetaHarmonic`](potentials::bonded::ThetaHarmonic) | Harmonic in $\theta$ |
 //! | Torsion | [`Torsion`](potentials::bonded::Torsion) | Periodic cosine series |
 //! | Inversion | [`PlanarInversion`](potentials::bonded::PlanarInversion) | Planar constraint |
@@ -106,7 +107,7 @@
 //!
 //! | Kernel | Combined Time | Throughput |
 //! |--------|---------------|------------|
-//! | Cosine Harmonic | 0.70 ns | ~1.4 Billion ops/sec |
+//! | Cosine Linear | 0.67 ns | ~1.5 Billion ops/sec |
 //! | Lennard-Jones | 1.19 ns | ~840 Million ops/sec |
 //! | Torsion (n=3) | 2.55 ns | ~390 Million ops/sec |
 //!
