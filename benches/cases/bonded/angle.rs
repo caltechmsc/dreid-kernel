@@ -1,6 +1,6 @@
 use crate::bench_angle_potential;
 use criterion::Criterion;
-use dreid_kernel::potentials::bonded::{CosineHarmonic, ThetaHarmonic};
+use dreid_kernel::potentials::bonded::{CosineHarmonic, CosineLinear, ThetaHarmonic};
 
 pub fn bench_angle(c: &mut Criterion) {
     bench_angle_potential!(
@@ -10,6 +10,8 @@ pub fn bench_angle(c: &mut Criterion) {
         (50.0, -0.5),
         125.0
     );
+
+    bench_angle_potential!(c, "bonded/angle/cosine-linear", CosineLinear, 100.0, 125.0);
 
     bench_angle_potential!(
         c,
