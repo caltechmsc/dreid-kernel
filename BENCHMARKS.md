@@ -6,8 +6,8 @@ This document details the performance metrics for `dreid-kernel`. All benchmarks
 
 The DREIDING force field kernel achieves extreme throughput by leveraging zero-cost abstractions and compiler optimizations.
 
-- **Fastest Kernel**: Cosine Harmonic Angle (> 1.4 Billion Combined Ops/sec).
-- **Most Common Kernel**: Lennard-Jones vdW (~830 Million Combined Ops/sec).
+- **Fastest Kernel**: Cosine Linear Angle (~1.5 Billion Combined Ops/sec).
+- **Most Common Kernel**: Lennard-Jones vdW (~840 Million Combined Ops/sec).
 - **Complex Kernel**: Splined Buckingham (~110 Million Combined Ops/sec).
 - **Optimization**: The `compute()` function (Energy + Force) is typically faster than the sum of their disparate calls due to shared intermediate calculations (e.g., $r^{-6}$ reuse).
 
@@ -35,17 +35,18 @@ The DREIDING force field kernel achieves extreme throughput by leveraging zero-c
 
 ### Bonded Interactions
 
-| Group         | Potential           | Energy (ns) | Force (ns) | Combined (ns) | Throughput (MOps/s) |
-| :------------ | :------------------ | :---------- | :--------- | :------------ | :------------------ |
-| **Stretch**   | Harmonic            | 1.23        | 2.15       | **2.20**      | **454**             |
-| **Stretch**   | Morse               | 4.61        | 5.92       | **6.25**      | **160**             |
-| **Angle**     | **Cosine Harmonic** | **0.56**    | **0.55**   | **0.70**      | **1,428**           |
-| **Angle**     | Theta Harmonic      | 5.02        | 5.84       | **6.14**      | **162**             |
-| **Torsion**   | Cosine (n=1)        | 1.63        | 1.60       | **2.03**      | **492**             |
-| **Torsion**   | Cosine (n=3)        | 2.13        | 2.18       | **2.55**      | **392**             |
-| **Torsion**   | Cosine (n=6)        | 3.22        | 3.47       | **3.81**      | **262**             |
-| **Inversion** | Planar              | 0.49        | 0.51       | **0.62**      | **1,612**           |
-| **Inversion** | Umbrella            | 0.57        | 0.55       | **0.71**      | **1,408**           |
+| Group         | Potential       | Energy (ns) | Force (ns) | Combined (ns) | Throughput (MOps/s) |
+| :------------ | :-------------- | :---------- | :--------- | :------------ | :------------------ |
+| **Stretch**   | Harmonic        | 1.23        | 2.15       | **2.20**      | **454**             |
+| **Stretch**   | Morse           | 4.61        | 5.92       | **6.25**      | **160**             |
+| **Angle**     | Cosine Harmonic | 0.56        | 0.55       | **0.70**      | **1,428**           |
+| **Angle**     | Cosine Linear   | 0.54        | 0.39       | **0.67**      | **1,494**           |
+| **Angle**     | Theta Harmonic  | 5.02        | 5.84       | **6.14**      | **162**             |
+| **Torsion**   | Cosine (n=1)    | 1.63        | 1.60       | **2.03**      | **492**             |
+| **Torsion**   | Cosine (n=3)    | 2.13        | 2.18       | **2.55**      | **392**             |
+| **Torsion**   | Cosine (n=6)    | 3.22        | 3.47       | **3.81**      | **262**             |
+| **Inversion** | Planar          | 0.49        | 0.51       | **0.62**      | **1,612**           |
+| **Inversion** | Umbrella        | 0.57        | 0.55       | **0.71**      | **1,408**           |
 
 ## Test Environment
 
