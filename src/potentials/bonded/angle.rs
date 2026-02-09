@@ -72,6 +72,72 @@ impl<T: Real> AngleKernel<T> for CosineHarmonic {
     }
 }
 
+/// Cosine Linear potential for bond angles with linear equilibrium geometry.
+///
+/// # Physics
+///
+/// Models the angle bending energy for atoms with linear equilibrium geometry ($\theta_0 = 180°$),
+/// using a simple linear function of the cosine of the angle.
+///
+/// - **Formula**: $$ E = K (1 + \cos\theta) $$
+/// - **Derivative Factor (`diff`)**: $$ \Gamma = \frac{dE}{d(\cos\theta)} = K $$
+///
+/// # Parameters
+///
+/// - `k`: Force constant $K$.
+///
+/// # Inputs
+///
+/// - `cos_theta`: Cosine of the bond angle $\theta_{ijk}$.
+///
+/// # Implementation Notes
+///
+/// - Single multiply-add for energy; zero arithmetic for derivative.
+/// - Pure polynomial evaluation; no trigonometric functions required.
+/// - Branchless and panic-free.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct CosineLinear;
+
+impl<T: Real> AngleKernel<T> for CosineLinear {
+    type Params = T;
+
+    /// Computes only the potential energy.
+    ///
+    /// # Formula
+    ///
+    /// $$ E = K (1 + \cos\theta) $$
+    #[inline(always)]
+    fn energy(cos_theta: T, k: Self::Params) -> T {
+        let one = T::from(1.0f32);
+        k * (one + cos_theta)
+    }
+
+    /// Computes only the derivative factor $\Gamma$.
+    ///
+    /// # Formula
+    ///
+    /// $$ \Gamma = K $$
+    ///
+    /// This factor allows computing forces via the chain rule:
+    /// $$ \vec{F} = -\Gamma \cdot \nabla (\cos\theta) $$
+    #[inline(always)]
+    fn diff(_cos_theta: T, k: Self::Params) -> T {
+        k
+    }
+
+    /// Computes both energy and derivative factor efficiently.
+    ///
+    /// This method reuses intermediate calculations to minimize operations.
+    #[inline(always)]
+    fn compute(cos_theta: T, k: Self::Params) -> EnergyDiff<T> {
+        let one = T::from(1.0f32);
+        let energy = k * (one + cos_theta);
+        let diff = k;
+
+        EnergyDiff { energy, diff }
+    }
+}
+
 /// Theta Harmonic potential for bond angles.
 ///
 /// # Physics
