@@ -98,7 +98,7 @@ We benchmark every kernel using rigorous statistical sampling (via `criterion`).
 
 | Interaction  | Kernel           | Combined Time | Throughput     |
 | :----------- | :--------------- | :------------ | :------------- |
-| **Angle**    | Cosine Harmonic  | **0.70 ns**   | ~1.4 Billion/s |
+| **Angle**    | Cosine Linear    | **0.67 ns**   | ~1.5 Billion/s |
 | **vdW**      | Lennard-Jones    | **1.19 ns**   | ~840 Million/s |
 | **Stretch**  | Harmonic Stretch | **2.20 ns**   | ~450 Million/s |
 | **Dihedral** | Torsion (n=3)    | **2.55 ns**   | ~390 Million/s |
