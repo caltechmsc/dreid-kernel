@@ -19,5 +19,3 @@ verify_pair_potential!(
         (2.0, -1.0)
     ]
 );
-
-// Note: SplinedBuckingham requires complex params (Newton-Raphson method and matrix for solving the spline coefficients), so we skip testing it here.

@@ -35,7 +35,6 @@
 //! |----------|--------|-------------|
 //! | Van der Waals | [`LennardJones`](potentials::nonbonded::LennardJones) | Classic 12-6 potential |
 //! | Van der Waals | [`Buckingham`](potentials::nonbonded::Buckingham) | Exponential-6 potential |
-//! | Van der Waals | [`SplinedBuckingham`](potentials::nonbonded::SplinedBuckingham) | $C^2$ continuous Exp-6 |
 //! | Electrostatics | [`Coulomb`](potentials::nonbonded::Coulomb) | Standard $1/r$ potential |
 //! | H-Bond | [`HydrogenBond`](potentials::nonbonded::HydrogenBond) | 12-10 with angular term |
 //!

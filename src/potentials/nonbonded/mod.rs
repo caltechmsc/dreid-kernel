@@ -9,7 +9,6 @@
 //! Models short-range repulsion (Pauli exclusion) and long-range attraction (dispersion).
 //! - [`LennardJones`]: Classic 12-6 potential.
 //! - [`Buckingham`]: Exponential-6 potential with softer repulsion.
-//! - [`SplinedBuckingham`]: $C^2$ continuous variant of Buckingham with polynomial regularization at short range.
 //!
 //! ## Electrostatics
 //! Models Coulombic interactions between partial charges.
@@ -25,4 +24,4 @@ mod vdw;
 
 pub use coulomb::Coulomb;
 pub use hbond::HydrogenBond;
-pub use vdw::{Buckingham, LennardJones, SplinedBuckingham};
+pub use vdw::{Buckingham, LennardJones};
