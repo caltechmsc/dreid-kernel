@@ -359,11 +359,10 @@ mod tests {
     const R0: f64 = 3.5;
     const R0_SQ: f64 = R0 * R0;
 
-    // Buckingham parameters: A, B, C, r_fusion_sq
+    // Buckingham parameters: A, B, C
     const BUCK_A: f64 = 1000.0;
     const BUCK_B: f64 = 3.0;
     const BUCK_C: f64 = 50.0;
-    const BUCK_FUSION_SQ: f64 = 0.5;
 
     // ========================================================================
     // Lennard-Jones Tests
@@ -513,8 +512,23 @@ mod tests {
     mod buckingham {
         use super::*;
 
-        fn params() -> (f64, f64, f64, f64) {
-            (BUCK_A, BUCK_B, BUCK_C, BUCK_FUSION_SQ)
+        /// Computes the local maximum of the Buckingham potential via Newton's method.
+        fn reflection_params(a: f64, b: f64, c: f64) -> (f64, f64) {
+            let mut r = 1.0_f64;
+            for _ in 0..100 {
+                let exp_term = (-b * r).exp();
+                let r7 = r.powi(7);
+                let g = a * b * exp_term * r7 - 6.0 * c;
+                let gp = a * b * exp_term * r.powi(6) * (7.0 - b * r);
+                r -= g / gp;
+            }
+            let e_max = a * (-b * r).exp() - c / r.powi(6);
+            (r * r, 2.0 * e_max)
+        }
+
+        fn params() -> (f64, f64, f64, f64, f64) {
+            let (r_max_sq, two_e_max) = reflection_params(BUCK_A, BUCK_B, BUCK_C);
+            (BUCK_A, BUCK_B, BUCK_C, r_max_sq, two_e_max)
         }
 
         // --------------------------------------------------------------------
@@ -535,14 +549,29 @@ mod tests {
         }
 
         #[test]
+        fn sanity_compute_equals_separate_reflected() {
+            let p = params();
+            let r_sq = 0.25_f64;
+
+            let result = Buckingham::compute(r_sq, p);
+            let energy_only = Buckingham::energy(r_sq, p);
+            let diff_only = Buckingham::diff(r_sq, p);
+
+            assert_relative_eq!(result.energy, energy_only, epsilon = 1e-12);
+            assert_relative_eq!(result.diff, diff_only, epsilon = 1e-12);
+        }
+
+        #[test]
         fn sanity_f32_f64_consistency() {
             let r_sq = 4.0;
             let p64 = params();
+            let (r_max_sq_32, two_e_max_32) = reflection_params(BUCK_A, BUCK_B, BUCK_C);
             let p32 = (
                 BUCK_A as f32,
                 BUCK_B as f32,
                 BUCK_C as f32,
-                BUCK_FUSION_SQ as f32,
+                r_max_sq_32 as f32,
+                two_e_max_32 as f32,
             );
 
             let e64 = Buckingham::energy(r_sq, p64);
@@ -556,13 +585,14 @@ mod tests {
         // --------------------------------------------------------------------
 
         #[test]
-        fn stability_fusion_region() {
+        fn stability_reflected_region() {
             let r_sq = 0.1_f64;
             let result = Buckingham::compute(r_sq, params());
 
             assert!(result.energy.is_finite());
             assert!(result.diff.is_finite());
-            assert!(result.energy > 1e5);
+            assert!(result.energy > 0.0);
+            assert!(result.diff > 0.0);
         }
 
         #[test]
@@ -572,6 +602,16 @@ mod tests {
 
             assert!(result.energy.is_finite());
             assert!(result.diff.is_finite());
+        }
+
+        #[test]
+        fn stability_near_zero() {
+            let r_sq = 1e-20_f64;
+            let p = params();
+            let e = Buckingham::energy(r_sq, p);
+
+            assert!(e.is_finite());
+            assert!(e > 0.0);
         }
 
         // --------------------------------------------------------------------
@@ -595,7 +635,12 @@ mod tests {
         }
 
         #[test]
-        fn finite_diff_short_range() {
+        fn finite_diff_reflected_region() {
+            finite_diff_check(0.8);
+        }
+
+        #[test]
+        fn finite_diff_normal_short_range() {
             finite_diff_check(1.5);
         }
 
@@ -610,15 +655,75 @@ mod tests {
         }
 
         // --------------------------------------------------------------------
-        // 4. Buckingham-Specific
+        // 4. Buckingham-Specific: Reflection Properties
         // --------------------------------------------------------------------
 
         #[test]
-        fn specific_exponential_dominates_short_range() {
-            let e1 = Buckingham::energy(0.81, params());
-            let e2 = Buckingham::energy(1.0, params());
-            assert!(e1.is_finite());
-            assert!(e2.is_finite());
+        fn specific_reflection_diverges() {
+            let p = params();
+            let e_close = Buckingham::energy(0.01, p);
+            let e_far = Buckingham::energy(0.25, p);
+            assert!(e_close > e_far);
+        }
+
+        #[test]
+        fn specific_diff_at_maximum_is_zero() {
+            let p = params();
+            let r_max_sq = p.3;
+            let d = Buckingham::diff(r_max_sq, p);
+            assert_relative_eq!(d, 0.0, epsilon = 1e-6);
+        }
+
+        #[test]
+        fn specific_c1_continuity_at_maximum() {
+            let p = params();
+            let r_max = p.3.sqrt();
+            let eps = 1e-8;
+
+            let r_inside = r_max - eps;
+            let r_outside = r_max + eps;
+
+            let d_inside = Buckingham::diff(r_inside * r_inside, p);
+            let d_outside = Buckingham::diff(r_outside * r_outside, p);
+
+            let de_dr_inside = -d_inside * r_inside;
+            let de_dr_outside = -d_outside * r_outside;
+
+            assert_relative_eq!(de_dr_inside, de_dr_outside, epsilon = 1e-3);
+        }
+
+        #[test]
+        fn specific_energy_continuity_at_maximum() {
+            let p = params();
+            let r_max = p.3.sqrt();
+            let eps = 1e-8;
+
+            let e_inside = Buckingham::energy((r_max - eps).powi(2), p);
+            let e_outside = Buckingham::energy((r_max + eps).powi(2), p);
+
+            assert_relative_eq!(e_inside, e_outside, epsilon = 1e-4);
+        }
+
+        #[test]
+        fn specific_finite_diff_across_boundary() {
+            let p = params();
+            let r_max = p.3.sqrt();
+
+            let h = 1e-6;
+
+            let r_out = r_max + 0.01;
+            let e_p = Buckingham::energy((r_out + h).powi(2), p);
+            let e_m = Buckingham::energy((r_out - h).powi(2), p);
+            let de_dr_num_out = (e_p - e_m) / (2.0 * h);
+            let de_dr_ana_out = -Buckingham::diff(r_out * r_out, p) * r_out;
+            assert_relative_eq!(de_dr_num_out, de_dr_ana_out, epsilon = TOL_DIFF);
+
+            let r_in = r_max - 0.01;
+            let e_p = Buckingham::energy((r_in + h).powi(2), p);
+            let e_m = Buckingham::energy((r_in - h).powi(2), p);
+            let de_dr_num_in = (e_p - e_m) / (2.0 * h);
+            let de_dr_ana_in = -Buckingham::diff(r_in * r_in, p) * r_in;
+            assert_relative_eq!(de_dr_num_in, de_dr_ana_in, epsilon = TOL_DIFF);
         }
     }
 
