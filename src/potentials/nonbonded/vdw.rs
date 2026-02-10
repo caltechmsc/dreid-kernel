@@ -99,7 +99,8 @@ impl<T: Real> PairKernel<T> for LennardJones {
 /// - `a`: The repulsion pre-factor $A = \frac{6 D_0}{\zeta-6} e^{\zeta}$.
 /// - `b`: The repulsion decay constant $B = \zeta / R_0$.
 /// - `c`: The attraction pre-factor $C = \frac{\zeta D_0 R_0^6}{\zeta-6}$.
-/// - `r_fusion_sq`: The squared distance threshold for regularization.
+/// - `r_max_sq`: The squared distance of the local energy maximum $r_{\text{max}}^2$.
+/// - `two_e_max`: Twice the energy at the local maximum, $2 E(r_{\text{max}})$.
 ///
 /// # Inputs
 ///
@@ -108,81 +109,77 @@ impl<T: Real> PairKernel<T> for LennardJones {
 /// # Implementation Notes
 ///
 /// - The kernel operates on the computationally efficient $A, B, C$ form.
-/// - A branchless regularization is applied for $r^2 < r_{fusion}^2$ using a mathematical mask
-///   to prevent energy collapse at very short distances, ensuring numerical stability.
+/// - For $r < r_{\text{max}}$, the energy is reflected about the local maximum:
+///   $E_{\text{ref}}(r) = 2 E_{\text{max}} - E(r)$. This produces a repulsive wall
+///   that diverges to $+\infty$ as $r \to 0$ via the $C/r^6$ attraction term,
+///   while maintaining $C^1$ continuity at $r_{\text{max}}$ (where $E'(r_{\text{max}}) = 0$).
+/// - A branchless sign-flip replaces the traditional constant penalty, providing
+///   physically correct short-range behavior at zero additional runtime cost.
 /// - Requires one `sqrt` and one `exp` call, making it computationally more demanding than LJ.
 /// - Power chain `inv_r2 -> inv_r6 -> inv_r8` is used for the attractive term.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Buckingham;
 
 impl<T: Real> PairKernel<T> for Buckingham {
-    type Params = (T, T, T, T);
+    type Params = (T, T, T, T, T);
 
     /// Computes only the potential energy.
     ///
     /// # Formula
     ///
-    /// $$ E = A e^{-B r} - C / r^6 $$
+    /// $$ E(r) = \begin{cases} A e^{-Br} - C/r^6 & r \ge r_{\text{max}} \\ 2 E_{\text{max}} - (A e^{-Br} - C/r^6) & r < r_{\text{max}} \end{cases} $$
     #[inline(always)]
-    fn energy(r_sq: T, (a, b, c, r_fusion_sq): Self::Params) -> T {
-        let is_safe = T::from((r_sq >= r_fusion_sq) as u8 as f32);
-        let effective_r_sq = r_sq.max(r_fusion_sq);
+    fn energy(r_sq: T, (a, b, c, r_max_sq, two_e_max): Self::Params) -> T {
+        let mask = T::from((r_sq >= r_max_sq) as u8 as f32);
+        let sign = mask + mask - T::from(1.0);
 
-        let r = effective_r_sq.sqrt();
-        let inv_r2 = effective_r_sq.recip();
+        let r = r_sq.sqrt();
+        let inv_r2 = r_sq.recip();
         let inv_r6 = inv_r2 * inv_r2 * inv_r2;
 
-        let repulsion = a * T::exp(-b * r);
-        let attraction = c * inv_r6;
-        let energy_unsafe = repulsion - attraction;
+        let e_buck = a * T::exp(-b * r) - c * inv_r6;
 
-        const FUSION_ENERGY_PENALTY: f32 = 1.0e6;
-        let penalty = T::from(FUSION_ENERGY_PENALTY);
-
-        energy_unsafe * is_safe + penalty * (T::from(1.0) - is_safe)
+        sign * e_buck + (T::from(1.0) - mask) * two_e_max
     }
 
     /// Computes only the force pre-factor $D$.
     ///
     /// # Formula
     ///
-    /// $$ D = \frac{A B e^{-B r}}{r} - \frac{6 C}{r^8} $$
+    /// $$ D(r) = \text{sign}(r) \left( \frac{A B e^{-Br}}{r} - \frac{6C}{r^8} \right) $$
+    ///
+    /// where $\text{sign}(r) = +1$ for $r \ge r_{\text{max}}$ and $-1$ otherwise.
+    /// At the maximum, $D(r_{\text{max}}) = 0$ from both sides, ensuring $C^1$ continuity.
     ///
     /// This factor is defined such that the force vector can be computed
     /// by a single vector multiplication: $\vec{F} = -D \cdot \vec{r}$.
     #[inline(always)]
-    fn diff(r_sq: T, (a, b, c, r_fusion_sq): Self::Params) -> T {
-        let is_safe = T::from((r_sq >= r_fusion_sq) as u8 as f32);
-        let effective_r_sq = r_sq.max(r_fusion_sq);
+    fn diff(r_sq: T, (a, b, c, r_max_sq, _two_e_max): Self::Params) -> T {
+        let mask = T::from((r_sq >= r_max_sq) as u8 as f32);
+        let sign = mask + mask - T::from(1.0);
 
-        let inv_r = effective_r_sq.rsqrt();
-        let r = effective_r_sq * inv_r;
+        let inv_r = r_sq.rsqrt();
+        let r = r_sq * inv_r;
         let inv_r2 = inv_r * inv_r;
         let inv_r4 = inv_r2 * inv_r2;
         let inv_r8 = inv_r4 * inv_r4;
 
         let exp_term = T::exp(-b * r);
+        let d_buck = a * b * exp_term * inv_r - T::from(6.0) * c * inv_r8;
 
-        let repulsion_factor = a * b * exp_term * inv_r;
-        let attraction_factor = T::from(6.0) * c * inv_r8;
-        let diff_unsafe = repulsion_factor - attraction_factor;
-
-        const FUSION_FORCE_PENALTY: f32 = 1.0e6;
-        let penalty = T::from(FUSION_FORCE_PENALTY);
-
-        diff_unsafe * is_safe + penalty * (T::from(1.0) - is_safe)
+        sign * d_buck
     }
 
     /// Computes both energy and force pre-factor efficiently.
     ///
     /// This method reuses intermediate calculations to minimize operations.
     #[inline(always)]
-    fn compute(r_sq: T, (a, b, c, r_fusion_sq): Self::Params) -> EnergyDiff<T> {
-        let is_safe = T::from((r_sq >= r_fusion_sq) as u8 as f32);
-        let effective_r_sq = r_sq.max(r_fusion_sq);
+    fn compute(r_sq: T, (a, b, c, r_max_sq, two_e_max): Self::Params) -> EnergyDiff<T> {
+        let mask = T::from((r_sq >= r_max_sq) as u8 as f32);
+        let sign = mask + mask - T::from(1.0);
 
-        let inv_r = effective_r_sq.rsqrt();
-        let r = effective_r_sq * inv_r;
+        let inv_r = r_sq.rsqrt();
+        let r = r_sq * inv_r;
         let inv_r2 = inv_r * inv_r;
         let inv_r4 = inv_r2 * inv_r2;
         let inv_r6 = inv_r4 * inv_r2;
@@ -190,23 +187,12 @@ impl<T: Real> PairKernel<T> for Buckingham {
 
         let exp_term = T::exp(-b * r);
 
-        let repulsion_energy = a * exp_term;
-        let attraction_energy = c * inv_r6;
-        let energy_unsafe = repulsion_energy - attraction_energy;
-
-        let repulsion_force = repulsion_energy * b * inv_r;
-        let attraction_force = T::from(6.0) * c * inv_r8;
-        let diff_unsafe = repulsion_force - attraction_force;
-
-        const FUSION_ENERGY_PENALTY: f32 = 1.0e6;
-        const FUSION_FORCE_PENALTY: f32 = 1.0e6;
-
-        let energy_penalty = T::from(FUSION_ENERGY_PENALTY);
-        let force_penalty = T::from(FUSION_FORCE_PENALTY);
+        let e_buck = a * exp_term - c * inv_r6;
+        let d_buck = a * b * exp_term * inv_r - T::from(6.0) * c * inv_r8;
 
         EnergyDiff {
-            energy: energy_unsafe * is_safe + energy_penalty * (T::from(1.0) - is_safe),
-            diff: diff_unsafe * is_safe + force_penalty * (T::from(1.0) - is_safe),
+            energy: sign * e_buck + (T::from(1.0) - mask) * two_e_max,
+            diff: sign * d_buck,
         }
     }
 }
