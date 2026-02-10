@@ -16,7 +16,10 @@ keywords = [
     "force-field",
     "dreiding",
 ]
-categories = ["science", "simulation"]
+categories = [
+    "science::computational-chemistry::molecular-simulation",
+    "no-std",
+]
 readme = "README.md"
 
 [package.metadata.docs.rs]
