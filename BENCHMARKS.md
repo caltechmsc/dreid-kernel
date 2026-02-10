@@ -8,7 +8,7 @@ The DREIDING force field kernel achieves extreme throughput by leveraging zero-c
 
 - **Fastest Kernel**: Cosine Linear Angle (~1.5 Billion Combined Ops/sec).
 - **Most Common Kernel**: Lennard-Jones vdW (~840 Million Combined Ops/sec).
-- **Complex Kernel**: Splined Buckingham (~110 Million Combined Ops/sec).
+- **Complex Kernel**: Buckingham vdW (~140 Million Combined Ops/sec).
 - **Optimization**: The `compute()` function (Energy + Force) is typically faster than the sum of their disparate calls due to shared intermediate calculations (e.g., $r^{-6}$ reuse).
 
 ## Detailed Results
@@ -22,14 +22,12 @@ The DREIDING force field kernel achieves extreme throughput by leveraging zero-c
 
 ### Non-Bonded Interactions
 
-| Potential              | Variant       | Energy (ns) | Force (ns) | Combined (ns) | Throughput (MOps/s) |
-| :--------------------- | :------------ | :---------- | :--------- | :------------ | :------------------ |
-| **Lennard-Jones**      | 12-6          | 0.94        | 0.97       | **1.19**      | **840**             |
-| **Coulomb**            | Electrostatic | 2.08        | 2.07       | **2.18**      | **458**             |
-| **Buckingham**         | Exp-6         | 5.77        | 7.25       | **7.73**      | **129**             |
-| **Splined Buckingham** | Long Range    | 6.46        | 7.41       | **9.02**      | **110**             |
-| **Splined Buckingham** | Short Range   | 6.46        | 7.62       | **8.78**      | **113**             |
-| **Hydrogen Bond**      | 12-10 (n=4)   | 1.51        | 2.09       | **2.19**      | **456**             |
+| Potential         | Variant       | Energy (ns) | Force (ns) | Combined (ns) | Throughput (MOps/s) |
+| :---------------- | :------------ | :---------- | :--------- | :------------ | :------------------ |
+| **Lennard-Jones** | 12-6          | 0.94        | 0.97       | **1.19**      | **840**             |
+| **Coulomb**       | Electrostatic | 2.08        | 2.07       | **2.18**      | **458**             |
+| **Buckingham**    | Exp-6         | 5.31        | 6.42       | **7.08**      | **141**             |
+| **Hydrogen Bond** | 12-10 (n=4)   | 1.51        | 2.09       | **2.19**      | **456**             |
 
 > _Note: Lennard-Jones combined calculation is extremely efficient, costing only ~0.25ns more than computing force alone._
 
