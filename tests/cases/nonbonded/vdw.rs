@@ -13,7 +13,7 @@ verify_pair_potential!(
 
 verify_pair_potential!(
     Buckingham,
-    (162754.791419, 6.0, 128.0, 0.25),
+    (162754.79141900392, 6.0, 128.0, 0.3659637525866052, 3410.825177656595),
     test_buckingham,
     cases: [
         (2.0, -1.0)
