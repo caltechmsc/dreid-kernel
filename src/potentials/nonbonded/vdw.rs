@@ -456,6 +456,24 @@ mod tests {
             let d = LennardJones::diff(25.0, (D0, R0_SQ));
             assert!(d < 0.0);
         }
+
+        // --------------------------------------------------------------------
+        // 5. Precompute
+        // --------------------------------------------------------------------
+
+        #[test]
+        fn precompute_values() {
+            let (d0, r0_sq) = LennardJones::precompute(D0, R0);
+            assert_relative_eq!(d0, D0, epsilon = 1e-14);
+            assert_relative_eq!(r0_sq, R0_SQ, epsilon = 1e-14);
+        }
+
+        #[test]
+        fn precompute_round_trip() {
+            let p = LennardJones::precompute(D0, R0);
+            let e = LennardJones::energy(R0_SQ, p);
+            assert_relative_eq!(e, -D0, epsilon = 1e-10);
+        }
     }
 
     // ========================================================================
