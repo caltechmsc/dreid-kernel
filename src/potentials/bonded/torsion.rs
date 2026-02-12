@@ -57,7 +57,7 @@ impl Torsion {
     /// # Computation
     ///
     /// $$ V_{half} = V / 2, \quad n\phi_0 = n \cdot \phi_0 \cdot \pi / 180 $$
-    /// $$ \cos(n\phi_0) = \cos(n\phi_0), \quad \sin(n\phi_0) = \sin(n\phi_0) $$
+    /// $$ \cos_{n\phi_0} = \cos(n\phi_0), \quad \sin_{n\phi_0} = \sin(n\phi_0) $$
     #[inline(always)]
     pub fn precompute<T: Real>(v_barrier: T, n: u8, phi0_deg: T) -> (T, u8, T, T) {
         let deg_to_rad = T::pi() / T::from(180.0);
@@ -218,26 +218,23 @@ mod tests {
     mod torsion {
         use super::*;
 
-        const V_HALF: f64 = 2.5; // V/2 = 2.5 kcal/mol
+        const V: f64 = 5.0;
+        const V_HALF: f64 = V / 2.0;
 
         fn params_n1() -> (f64, u8, f64, f64) {
-            // n=1, phi0=0 => cos(0)=1, sin(0)=0
-            (V_HALF, 1, 1.0, 0.0)
+            Torsion::precompute(V, 1, 0.0)
         }
 
         fn params_n2() -> (f64, u8, f64, f64) {
-            // n=2, phi0=π => cos(2π)=1, sin(2π)=0
-            (V_HALF, 2, 1.0, 0.0)
+            Torsion::precompute(V, 2, 0.0)
         }
 
         fn params_n3() -> (f64, u8, f64, f64) {
-            // n=3, phi0=0 => cos(0)=1, sin(0)=0
-            (V_HALF, 3, 1.0, 0.0)
+            Torsion::precompute(V, 3, 0.0)
         }
 
         fn params_n4() -> (f64, u8, f64, f64) {
-            // n=4, phi0=0 => cos(0)=1, sin(0)=0
-            (V_HALF, 4, 1.0, 0.0)
+            Torsion::precompute(V, 4, 0.0)
         }
 
         // --------------------------------------------------------------------
@@ -263,7 +260,7 @@ mod tests {
             let phi = PI / 3.0;
             let (cos_phi, sin_phi) = (phi.cos(), phi.sin());
             let p64 = params_n2();
-            let p32 = (V_HALF as f32, 2u8, 1.0f32, 0.0f32);
+            let p32 = Torsion::precompute(V as f32, 2, 0.0f32);
 
             let e64 = Torsion::energy(cos_phi, sin_phi, p64);
             let e32 = Torsion::energy(cos_phi as f32, sin_phi as f32, p32);
@@ -302,7 +299,7 @@ mod tests {
 
         #[test]
         fn stability_high_periodicity() {
-            let p = (V_HALF, 6u8, 1.0, 0.0);
+            let p = Torsion::precompute(V, 6, 0.0);
             let phi = PI / 5.0;
             let result = Torsion::compute(phi.cos(), phi.sin(), p);
 
@@ -398,7 +395,7 @@ mod tests {
 
         #[test]
         fn precompute_values_n3() {
-            let (v_half, n, cos_n_phi0, sin_n_phi0) = Torsion::precompute(V_HALF * 2.0, 3, 0.0);
+            let (v_half, n, cos_n_phi0, sin_n_phi0) = Torsion::precompute(V, 3, 0.0);
             assert_relative_eq!(v_half, V_HALF, epsilon = 1e-14);
             assert_eq!(n, 3);
             assert_relative_eq!(cos_n_phi0, 1.0, epsilon = 1e-10);
@@ -407,8 +404,8 @@ mod tests {
 
         #[test]
         fn precompute_round_trip() {
-            let p = Torsion::precompute(10.0, 3, 180.0);
-            let e = Torsion::energy(-1.0, 0.0, p);
+            let p = Torsion::precompute(V, 3, 0.0);
+            let e = Torsion::energy(1.0, 0.0, p);
             assert_relative_eq!(e, 0.0, epsilon = 1e-10);
         }
     }
