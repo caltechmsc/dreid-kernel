@@ -324,6 +324,14 @@ mod tests {
     mod lennard_jones {
         use super::*;
 
+        const D0: f64 = 0.1;
+        const R0: f64 = 3.5;
+        const R0_SQ: f64 = R0 * R0;
+
+        fn params() -> (f64, f64) {
+            LennardJones::precompute(D0, R0)
+        }
+
         // --------------------------------------------------------------------
         // 1. Sanity Checks
         // --------------------------------------------------------------------
@@ -331,11 +339,11 @@ mod tests {
         #[test]
         fn sanity_compute_equals_separate() {
             let r_sq = 9.0_f64;
-            let params = (D0, R0_SQ);
+            let p = params();
 
-            let result = LennardJones::compute(r_sq, params);
-            let energy_only = LennardJones::energy(r_sq, params);
-            let diff_only = LennardJones::diff(r_sq, params);
+            let result = LennardJones::compute(r_sq, p);
+            let energy_only = LennardJones::energy(r_sq, p);
+            let diff_only = LennardJones::diff(r_sq, p);
 
             assert_relative_eq!(result.energy, energy_only, epsilon = 1e-14);
             assert_relative_eq!(result.diff, diff_only, epsilon = 1e-14);
@@ -343,26 +351,25 @@ mod tests {
 
         #[test]
         fn sanity_f32_f64_consistency() {
-            let r_sq_64 = 12.25_f64;
-            let r_sq_32 = 12.25_f32;
-            let params_64 = (D0, R0_SQ);
-            let params_32 = (D0 as f32, R0_SQ as f32);
+            let r_sq = 12.25;
+            let p64 = params();
+            let p32 = LennardJones::precompute(D0 as f32, R0 as f32);
 
-            let e64 = LennardJones::energy(r_sq_64, params_64);
-            let e32 = LennardJones::energy(r_sq_32, params_32);
+            let e64 = LennardJones::energy(r_sq, p64);
+            let e32 = LennardJones::energy(r_sq as f32, p32);
 
             assert_relative_eq!(e64, e32 as f64, epsilon = 1e-5);
         }
 
         #[test]
         fn sanity_equilibrium_energy_minimum() {
-            let e = LennardJones::energy(R0_SQ, (D0, R0_SQ));
+            let e = LennardJones::energy(R0_SQ, params());
             assert_relative_eq!(e, -D0, epsilon = 1e-10);
         }
 
         #[test]
         fn sanity_equilibrium_zero_force() {
-            let d = LennardJones::diff(R0_SQ, (D0, R0_SQ));
+            let d = LennardJones::diff(R0_SQ, params());
             assert_relative_eq!(d, 0.0, epsilon = 1e-10);
         }
 
@@ -373,7 +380,7 @@ mod tests {
         #[test]
         fn stability_large_distance() {
             let r_sq = 1e6_f64;
-            let result = LennardJones::compute(r_sq, (D0, R0_SQ));
+            let result = LennardJones::compute(r_sq, params());
 
             assert!(result.energy.is_finite());
             assert!(result.diff.is_finite());
@@ -383,7 +390,7 @@ mod tests {
         #[test]
         fn stability_small_distance() {
             let r_sq = 1.0_f64;
-            let result = LennardJones::compute(r_sq, (D0, R0_SQ));
+            let result = LennardJones::compute(r_sq, params());
 
             assert!(result.energy.is_finite());
             assert!(result.diff.is_finite());
@@ -394,16 +401,17 @@ mod tests {
         // 3. Finite Difference Verification
         // --------------------------------------------------------------------
 
-        fn finite_diff_check(r: f64, params: (f64, f64)) {
+        fn finite_diff_check(r: f64) {
+            let p = params();
             let r_sq = r * r;
 
             let r_plus = r + H;
             let r_minus = r - H;
-            let e_plus = LennardJones::energy(r_plus * r_plus, params);
-            let e_minus = LennardJones::energy(r_minus * r_minus, params);
+            let e_plus = LennardJones::energy(r_plus * r_plus, p);
+            let e_minus = LennardJones::energy(r_minus * r_minus, p);
             let de_dr_numerical = (e_plus - e_minus) / (2.0 * H);
 
-            let d_analytic = LennardJones::diff(r_sq, params);
+            let d_analytic = LennardJones::diff(r_sq, p);
             let de_dr_analytic = -d_analytic * r;
 
             assert_relative_eq!(de_dr_numerical, de_dr_analytic, epsilon = TOL_DIFF);
@@ -411,22 +419,22 @@ mod tests {
 
         #[test]
         fn finite_diff_repulsion_region() {
-            finite_diff_check(2.5, (D0, R0_SQ));
+            finite_diff_check(2.5);
         }
 
         #[test]
         fn finite_diff_equilibrium_region() {
-            finite_diff_check(R0, (D0, R0_SQ));
+            finite_diff_check(R0);
         }
 
         #[test]
         fn finite_diff_attraction_region() {
-            finite_diff_check(5.0, (D0, R0_SQ));
+            finite_diff_check(5.0);
         }
 
         #[test]
         fn finite_diff_long_range() {
-            finite_diff_check(10.0, (D0, R0_SQ));
+            finite_diff_check(10.0);
         }
 
         // --------------------------------------------------------------------
@@ -435,25 +443,25 @@ mod tests {
 
         #[test]
         fn specific_repulsion_positive_energy() {
-            let e = LennardJones::energy(4.0, (D0, R0_SQ));
+            let e = LennardJones::energy(4.0, params());
             assert!(e > 0.0);
         }
 
         #[test]
         fn specific_attraction_negative_energy() {
-            let e = LennardJones::energy(25.0, (D0, R0_SQ));
+            let e = LennardJones::energy(25.0, params());
             assert!(e < 0.0);
         }
 
         #[test]
         fn specific_diff_sign_repulsion() {
-            let d = LennardJones::diff(4.0, (D0, R0_SQ));
+            let d = LennardJones::diff(4.0, params());
             assert!(d > 0.0);
         }
 
         #[test]
         fn specific_diff_sign_attraction() {
-            let d = LennardJones::diff(25.0, (D0, R0_SQ));
+            let d = LennardJones::diff(25.0, params());
             assert!(d < 0.0);
         }
 
