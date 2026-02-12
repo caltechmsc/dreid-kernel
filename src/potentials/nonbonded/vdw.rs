@@ -16,6 +16,11 @@ use crate::types::EnergyDiff;
 /// - `d0`: The energy well depth $D_0$.
 /// - `r0_sq`: The squared equilibrium distance $R_0^2$.
 ///
+/// # Pre-computation
+///
+/// Use [`LennardJones::precompute`] to convert physical constants into optimized parameters:
+/// $(D_0, R_0) \to (D_0, R_0^2)$.
+///
 /// # Inputs
 ///
 /// - `r_sq`: Squared distance $r^2$ between two atoms.
@@ -28,6 +33,29 @@ use crate::types::EnergyDiff;
 /// - Branchless and panic-free.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct LennardJones;
+
+impl LennardJones {
+    /// Pre-computes optimized kernel parameters from physical constants.
+    ///
+    /// # Input
+    ///
+    /// - `d0`: Energy well depth $D_0$.
+    /// - `r0`: Equilibrium distance $R_0$.
+    ///
+    /// # Output
+    ///
+    /// Returns `(d0, r0_sq)`:
+    /// - `d0`: Well depth (passed through).
+    /// - `r0_sq`: Squared equilibrium distance $R_0^2$.
+    ///
+    /// # Computation
+    ///
+    /// $$ R_0^2 = R_0 \times R_0 $$
+    #[inline(always)]
+    pub fn precompute<T: Real>(d0: T, r0: T) -> (T, T) {
+        (d0, r0 * r0)
+    }
+}
 
 impl<T: Real> PairKernel<T> for LennardJones {
     type Params = (T, T);
