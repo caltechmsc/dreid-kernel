@@ -130,6 +130,13 @@ impl<T: Real> PairKernel<T> for LennardJones {
 /// - `r_max_sq`: The squared distance of the local energy maximum $r_{\text{max}}^2$.
 /// - `two_e_max`: Twice the energy at the local maximum, $2 E(r_{\text{max}})$.
 ///
+/// # Pre-computation
+///
+/// Use [`Buckingham::precompute`] to convert physical constants into optimized parameters:
+/// $(D_0, R_0, \zeta) \to (A, B, C, r_{max}^2, 2E_{max})$.
+/// This involves computing the $A, B, C$ form and finding the reflection point
+/// via Newton's method.
+///
 /// # Inputs
 ///
 /// - `r_sq`: Squared distance $r^2$ between two atoms.
@@ -147,6 +154,69 @@ impl<T: Real> PairKernel<T> for LennardJones {
 /// - Power chain `inv_r2 -> inv_r6 -> inv_r8` is used for the attractive term.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Buckingham;
+
+impl Buckingham {
+    /// Pre-computes optimized kernel parameters from physical constants.
+    ///
+    /// # Input
+    ///
+    /// - `d0`: Energy well depth $D_0$.
+    /// - `r0`: Equilibrium distance $R_0$.
+    /// - `zeta`: Steepness parameter $\zeta$ (must be $> 6$).
+    ///
+    /// # Output
+    ///
+    /// Returns `(a, b, c, r_max_sq, two_e_max)`:
+    /// - `a`: Repulsion pre-factor $A = \frac{6 D_0}{\zeta-6} e^{\zeta}$.
+    /// - `b`: Repulsion decay constant $B = \zeta / R_0$.
+    /// - `c`: Attraction pre-factor $C = \frac{\zeta D_0 R_0^6}{\zeta-6}$.
+    /// - `r_max_sq`: Squared distance of the local energy maximum.
+    /// - `two_e_max`: Twice the energy at the local maximum.
+    ///
+    /// # Computation
+    ///
+    /// $$ A = \frac{6 D_0}{\zeta - 6} e^{\zeta}, \quad B = \frac{\zeta}{R_0}, \quad C = \frac{\zeta D_0 R_0^6}{\zeta - 6} $$
+    ///
+    /// The reflection point $r_{max}$ is found by solving $dE/dr = 0$ via Newton's method.
+    #[inline(always)]
+    pub fn precompute<T: Real>(d0: T, r0: T, zeta: T) -> (T, T, T, T, T) {
+        let six = T::from(6.0);
+        let zeta_minus_6 = zeta - six;
+
+        let r0_2 = r0 * r0;
+        let r0_3 = r0_2 * r0;
+        let r0_6 = r0_3 * r0_3;
+
+        let a = six * d0 * T::exp(zeta) / zeta_minus_6;
+        let b = zeta / r0;
+        let c = zeta * d0 * r0_6 / zeta_minus_6;
+
+        let seven = T::from(7.0);
+        let mut r = r0;
+        for _ in 0..32 {
+            let exp_term = T::exp(-b * r);
+            let r2 = r * r;
+            let r3 = r2 * r;
+            let r6 = r3 * r3;
+            let r7 = r6 * r;
+
+            let g = a * b * exp_term * r7 - six * c;
+            let gp = a * b * exp_term * r6 * (seven - b * r);
+            r = r - g / gp;
+        }
+
+        let r_max_sq = r * r;
+
+        let inv_r = r.recip();
+        let inv_r2 = inv_r * inv_r;
+        let inv_r3 = inv_r2 * inv_r;
+        let inv_r6 = inv_r3 * inv_r3;
+        let e_max = a * T::exp(-b * r) - c * inv_r6;
+        let two_e_max = e_max + e_max;
+
+        (a, b, c, r_max_sq, two_e_max)
+    }
+}
 
 impl<T: Real> PairKernel<T> for Buckingham {
     type Params = (T, T, T, T, T);
