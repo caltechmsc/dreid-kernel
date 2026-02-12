@@ -184,6 +184,11 @@ impl<T: Real> AngleKernel<T> for CosineLinear {
 /// - `k_half`: Half force constant $K_{half} = K/2$.
 /// - `theta0`: The equilibrium angle $\theta_0$ in radians.
 ///
+/// # Pre-computation
+///
+/// Use [`ThetaHarmonic::precompute`] to convert physical constants into optimized parameters:
+/// $(K, \theta_0°) \to (K/2, \theta_{0,rad})$.
+///
 /// # Inputs
 ///
 /// - `cos_theta`: Cosine of the bond angle $\theta_{ijk}$.
@@ -195,6 +200,32 @@ impl<T: Real> AngleKernel<T> for CosineLinear {
 /// - Needs a single `acos` call for angle calculation.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct ThetaHarmonic;
+
+impl ThetaHarmonic {
+    /// Pre-computes optimized kernel parameters from physical constants.
+    ///
+    /// # Input
+    ///
+    /// - `k`: Force constant $K$.
+    /// - `theta0_deg`: Equilibrium angle $\theta_0$ in degrees.
+    ///
+    /// # Output
+    ///
+    /// Returns `(k_half, theta0)`:
+    /// - `k_half`: Half force constant $K/2$.
+    /// - `theta0`: Equilibrium angle $\theta_0$ in radians.
+    ///
+    /// # Computation
+    ///
+    /// $$ K_{half} = K / 2, \quad \theta_0 = \theta_0° \cdot \pi / 180 $$
+    #[inline(always)]
+    pub fn precompute<T: Real>(k: T, theta0_deg: T) -> (T, T) {
+        let deg_to_rad = T::pi() / T::from(180.0);
+        let k_half = k * T::from(0.5);
+        let theta0 = theta0_deg * deg_to_rad;
+        (k_half, theta0)
+    }
+}
 
 impl<T: Real> AngleKernel<T> for ThetaHarmonic {
     type Params = (T, T);
