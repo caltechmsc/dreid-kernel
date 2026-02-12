@@ -399,6 +399,24 @@ mod tests {
             assert!(e_large < 0.0);
             assert!(e_small > 0.0);
         }
+
+        // --------------------------------------------------------------------
+        // 5. Precompute
+        // --------------------------------------------------------------------
+
+        #[test]
+        fn precompute_values() {
+            let (d_hb, r_hb_sq) = HBond4::precompute(D_HB, R_HB);
+            assert_relative_eq!(d_hb, D_HB, epsilon = 1e-14);
+            assert_relative_eq!(r_hb_sq, R_HB_SQ, epsilon = 1e-14);
+        }
+
+        #[test]
+        fn precompute_round_trip() {
+            let p = HBond4::precompute(D_HB, R_HB);
+            let e = HBond4::energy(R_HB_SQ, 1.0, p);
+            assert_relative_eq!(e, -D_HB, epsilon = 1e-10);
+        }
     }
 
     // ========================================================================
