@@ -114,6 +114,11 @@ impl<T: Real> AngleKernel<T> for PlanarInversion {
 /// - `c_half`: Half force constant $C_{half} = C/2$.
 /// - `cos_psi0`: Equilibrium value $\cos\psi_0 \neq 0$.
 ///
+/// # Pre-computation
+///
+/// Use [`UmbrellaInversion::precompute`] to convert physical constants into optimized parameters:
+/// $(C, \psi_0°) \to (C/2, \cos\psi_0)$.
+///
 /// # Inputs
 ///
 /// - `cos_psi`: Cosine of the out-of-plane angle $\psi$.
@@ -126,6 +131,32 @@ impl<T: Real> AngleKernel<T> for PlanarInversion {
 /// - **DREIDING convention:** force constant $C = K_{inv}/3$ (split among three permutations).
 #[derive(Clone, Copy, Debug, Default)]
 pub struct UmbrellaInversion;
+
+impl UmbrellaInversion {
+    /// Pre-computes optimized kernel parameters from physical constants.
+    ///
+    /// # Input
+    ///
+    /// - `k`: Force constant $C$.
+    /// - `psi0_deg`: Equilibrium out-of-plane angle $\psi_0$ in degrees.
+    ///
+    /// # Output
+    ///
+    /// Returns `(c_half, cos_psi0)`:
+    /// - `c_half`: Half force constant $C/2$.
+    /// - `cos_psi0`: Cosine of equilibrium angle $\cos\psi_0$.
+    ///
+    /// # Computation
+    ///
+    /// $$ C_{half} = C / 2, \quad \cos\psi_0 = \cos(\psi_0 \cdot \pi / 180) $$
+    #[inline(always)]
+    pub fn precompute<T: Real>(k: T, psi0_deg: T) -> (T, T) {
+        let deg_to_rad = T::pi() / T::from(180.0);
+        let c_half = k * T::from(0.5);
+        let cos_psi0 = (psi0_deg * deg_to_rad).cos();
+        (c_half, cos_psi0)
+    }
+}
 
 impl<T: Real> AngleKernel<T> for UmbrellaInversion {
     type Params = (T, T);
