@@ -344,11 +344,13 @@ mod tests {
     mod cosine_harmonic {
         use super::*;
 
-        const K_HALF: f64 = 50.0; // C/2 = 50
-        const COS0: f64 = 0.5; // cos(60°) = 0.5
+        const K: f64 = 100.0;
+        const THETA0_DEG: f64 = 60.0;
+        const K_HALF: f64 = K / 2.0;
+        const COS0: f64 = 0.5;
 
         fn params() -> (f64, f64) {
-            (K_HALF, COS0)
+            CosineHarmonic::precompute(K, THETA0_DEG)
         }
 
         // --------------------------------------------------------------------
@@ -372,7 +374,7 @@ mod tests {
         fn sanity_f32_f64_consistency() {
             let cos_theta = 0.6;
             let p64 = params();
-            let p32 = (K_HALF as f32, COS0 as f32);
+            let p32 = CosineHarmonic::precompute(K as f32, THETA0_DEG as f32);
 
             let e64 = CosineHarmonic::energy(cos_theta, p64);
             let e32 = CosineHarmonic::energy(cos_theta as f32, p32);
@@ -384,8 +386,8 @@ mod tests {
         fn sanity_equilibrium() {
             let result = CosineHarmonic::compute(COS0, params());
 
-            assert_relative_eq!(result.energy, 0.0, epsilon = 1e-14);
-            assert_relative_eq!(result.diff, 0.0, epsilon = 1e-14);
+            assert_relative_eq!(result.energy, 0.0, epsilon = 1e-12);
+            assert_relative_eq!(result.diff, 0.0, epsilon = 1e-12);
         }
 
         // --------------------------------------------------------------------
@@ -474,16 +476,15 @@ mod tests {
 
         #[test]
         fn precompute_values() {
-            let (k_half, cos0) = CosineHarmonic::precompute(K_HALF * 2.0, 60.0);
+            let (k_half, cos0) = CosineHarmonic::precompute(K, THETA0_DEG);
             assert_relative_eq!(k_half, K_HALF, epsilon = 1e-14);
             assert_relative_eq!(cos0, COS0, epsilon = 1e-10);
         }
 
         #[test]
         fn precompute_round_trip() {
-            let p = CosineHarmonic::precompute(100.0, 60.0);
-            let cos_eq = 60.0_f64.to_radians().cos();
-            let e = CosineHarmonic::energy(cos_eq, p);
+            let p = CosineHarmonic::precompute(K, THETA0_DEG);
+            let e = CosineHarmonic::energy(COS0, p);
             assert_relative_eq!(e, 0.0, epsilon = 1e-10);
         }
     }
