@@ -18,6 +18,11 @@ use crate::types::EnergyDiff;
 /// - `cos_n_phi0`: $\cos(n\phi_0)$, pre-computed phase cosine.
 /// - `sin_n_phi0`: $\sin(n\phi_0)$, pre-computed phase sine.
 ///
+/// # Pre-computation
+///
+/// Use [`Torsion::precompute`] to convert physical constants into optimized parameters:
+/// $(V, n, \phi_0°) \to (V/2, n, \cos(n\phi_0), \sin(n\phi_0))$.
+///
 /// # Inputs
 ///
 /// - `cos_phi`: Cosine of the dihedral angle $\cos\phi$.
@@ -31,6 +36,38 @@ use crate::types::EnergyDiff;
 /// - Branchless and panic-free.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Torsion;
+
+impl Torsion {
+    /// Pre-computes optimized kernel parameters from physical constants.
+    ///
+    /// # Input
+    ///
+    /// - `v_barrier`: Total barrier height $V$.
+    /// - `n`: Periodicity/multiplicity.
+    /// - `phi0_deg`: Equilibrium dihedral angle $\phi_0$ in degrees.
+    ///
+    /// # Output
+    ///
+    /// Returns `(v_half, n, cos_n_phi0, sin_n_phi0)`:
+    /// - `v_half`: Half barrier height $V/2$.
+    /// - `n`: Periodicity (passed through).
+    /// - `cos_n_phi0`: $\cos(n\phi_0)$, pre-computed phase cosine.
+    /// - `sin_n_phi0`: $\sin(n\phi_0)$, pre-computed phase sine.
+    ///
+    /// # Computation
+    ///
+    /// $$ V_{half} = V / 2, \quad n\phi_0 = n \cdot \phi_0 \cdot \pi / 180 $$
+    /// $$ \cos(n\phi_0) = \cos(n\phi_0), \quad \sin(n\phi_0) = \sin(n\phi_0) $$
+    #[inline(always)]
+    pub fn precompute<T: Real>(v_barrier: T, n: u8, phi0_deg: T) -> (T, u8, T, T) {
+        let deg_to_rad = T::pi() / T::from(180.0);
+        let v_half = v_barrier * T::from(0.5);
+        let n_phi0 = T::from(n as f32) * phi0_deg * deg_to_rad;
+        let cos_n_phi0 = n_phi0.cos();
+        let sin_n_phi0 = n_phi0.sin();
+        (v_half, n, cos_n_phi0, sin_n_phi0)
+    }
+}
 
 impl<T: Real> TorsionKernel<T> for Torsion {
     type Params = (T, u8, T, T);
