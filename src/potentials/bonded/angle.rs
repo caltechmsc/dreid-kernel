@@ -19,7 +19,7 @@ use crate::types::EnergyDiff;
 /// # Pre-computation
 ///
 /// Use [`CosineHarmonic::precompute`] to convert physical constants into optimized parameters:
-/// $(K, \theta_0°) \to (K/2, \cos\theta_0)$.
+/// $(C, \theta_0°) \to (C/2, \cos\theta_0)$.
 ///
 /// # Inputs
 ///
