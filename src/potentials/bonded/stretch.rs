@@ -212,11 +212,12 @@ mod tests {
     mod harmonic {
         use super::*;
 
-        const K_HALF: f64 = 350.0; // K/2 = 350, so K = 700 kcal/(mol·Å²)
-        const R0: f64 = 1.5; // Equilibrium distance Å
+        const K: f64 = 700.0;
+        const R0: f64 = 1.5;
+        const K_HALF: f64 = K / 2.0;
 
         fn params() -> (f64, f64) {
-            (K_HALF, R0)
+            Harmonic::precompute(K, R0)
         }
 
         // --------------------------------------------------------------------
@@ -240,7 +241,7 @@ mod tests {
         fn sanity_f32_f64_consistency() {
             let r_sq = 3.0;
             let p64 = params();
-            let p32 = (K_HALF as f32, R0 as f32);
+            let p32 = Harmonic::precompute(K as f32, R0 as f32);
 
             let e64 = Harmonic::energy(r_sq, p64);
             let e32 = Harmonic::energy(r_sq as f32, p32);
@@ -345,15 +346,15 @@ mod tests {
 
         #[test]
         fn precompute_values() {
-            let (k_half, r0) = Harmonic::precompute(K_HALF * 2.0, R0);
+            let (k_half, r0) = Harmonic::precompute(K, R0);
             assert_relative_eq!(k_half, K_HALF, epsilon = 1e-14);
             assert_relative_eq!(r0, R0, epsilon = 1e-14);
         }
 
         #[test]
         fn precompute_round_trip() {
-            let p = Harmonic::precompute(700.0, 1.53);
-            let e = Harmonic::energy(1.53 * 1.53, p);
+            let p = Harmonic::precompute(K, R0);
+            let e = Harmonic::energy(R0 * R0, p);
             assert_relative_eq!(e, 0.0, epsilon = 1e-14);
         }
     }
@@ -365,9 +366,9 @@ mod tests {
     mod morse {
         use super::*;
 
-        const DE: f64 = 70.0; // Dissociation energy kcal/mol
-        const R0: f64 = 1.5; // Equilibrium distance Å
-        const ALPHA: f64 = 2.0; // Stiffness parameter Å⁻¹
+        const DE: f64 = 70.0;
+        const R0: f64 = 1.5;
+        const ALPHA: f64 = 2.0;
 
         fn params() -> (f64, f64, f64) {
             (DE, R0, ALPHA)
