@@ -31,9 +31,8 @@ This library provides low-level kernels. It is designed to be the calculation en
 ```rust
 use dreid_kernel::{potentials::nonbonded::LennardJones, PairKernel};
 
-// Constants (compile-time or runtime)
-// (Depth, Equilibrium Distance^2)
-let params = (0.1, 16.0);
+// Pre-compute parameters from physical constants: (D0, R0) -> (D0, R0^2)
+let params = LennardJones::precompute(0.1, 4.0);
 
 // Squared distance between atoms (r^2 = 3.8^2)
 let r_sq = 14.44;
@@ -53,9 +52,9 @@ let result = LennardJones::compute(r_sq, params);
 ```rust
 use dreid_kernel::{potentials::bonded::Torsion, TorsionKernel};
 
-// (V_half, Periodicity n, Cos(n*phase), Sin(n*phase))
-// V_half = V/2 where V is the full barrier height
-let params = (2.5, 3, 1.0, 0.0); // V=5 kcal/mol, n=3, phase=0
+// Pre-compute parameters from physical constants:
+// (V, n, phi0_deg) -> (V/2, n, cos(n*phi0), sin(n*phi0))
+let params = Torsion::precompute(5.0, 3, 0.0); // V=5 kcal/mol, n=3, phi0=0°
 
 // Dihedral angle input (cos(phi), sin(phi))
 let cos_phi = 0.5;
