@@ -221,10 +221,11 @@ mod tests {
     mod planar_inversion {
         use super::*;
 
-        const C_HALF: f64 = 20.0; // C/2 = 20 kcal/mol
+        const C: f64 = 40.0;
+        const C_HALF: f64 = C / 2.0;
 
         fn params() -> f64 {
-            C_HALF
+            PlanarInversion::precompute(C)
         }
 
         // --------------------------------------------------------------------
@@ -248,7 +249,7 @@ mod tests {
         fn sanity_f32_f64_consistency() {
             let cos_psi = 0.4;
             let p64 = params();
-            let p32 = C_HALF as f32;
+            let p32 = PlanarInversion::precompute(C as f32);
 
             let e64 = PlanarInversion::energy(cos_psi, p64);
             let e32 = PlanarInversion::energy(cos_psi as f32, p32);
@@ -363,13 +364,13 @@ mod tests {
 
         #[test]
         fn precompute_values() {
-            let c_half = PlanarInversion::precompute(C_HALF * 2.0);
+            let c_half = PlanarInversion::precompute(C);
             assert_relative_eq!(c_half, C_HALF, epsilon = 1e-14);
         }
 
         #[test]
         fn precompute_round_trip() {
-            let p = PlanarInversion::precompute(40.0);
+            let p = PlanarInversion::precompute(C);
             let e = PlanarInversion::energy(0.0, p);
             assert_relative_eq!(e, 0.0, epsilon = 1e-14);
         }
