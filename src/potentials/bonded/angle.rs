@@ -16,6 +16,11 @@ use crate::types::EnergyDiff;
 /// - `k_half`: Half force constant $C_{half} = C/2$.
 /// - `cos0`: The cosine of the equilibrium angle $\cos\theta_0$.
 ///
+/// # Pre-computation
+///
+/// Use [`CosineHarmonic::precompute`] to convert physical constants into optimized parameters:
+/// $(K, \theta_0°) \to (K/2, \cos\theta_0)$.
+///
 /// # Inputs
 ///
 /// - `cos_theta`: Cosine of the bond angle $\theta_{ijk}$.
@@ -27,6 +32,33 @@ use crate::types::EnergyDiff;
 /// - Branchless and panic-free.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct CosineHarmonic;
+
+impl CosineHarmonic {
+    /// Pre-computes optimized kernel parameters from physical constants.
+    ///
+    /// # Input
+    ///
+    /// - `k`: Force constant $C$.
+    /// - `theta0_deg`: Equilibrium angle $\theta_0$ in degrees.
+    ///
+    /// # Output
+    ///
+    /// Returns `(k_half, cos0)`:
+    /// - `k_half`: Half force constant $C/2$.
+    /// - `cos0`: Cosine of equilibrium angle $\cos\theta_0$.
+    ///
+    /// # Computation
+    ///
+    /// $$ C_{half} = C / 2, \quad \cos_0 = \cos(\theta_0 \cdot \pi / 180) $$
+    #[inline(always)]
+    pub fn precompute<T: Real>(k: T, theta0_deg: T) -> (T, T) {
+        let deg_to_rad = T::pi() / T::from(180.0);
+        let theta0 = theta0_deg * deg_to_rad;
+        let k_half = k * T::from(0.5);
+        let cos0 = theta0.cos();
+        (k_half, cos0)
+    }
+}
 
 impl<T: Real> AngleKernel<T> for CosineHarmonic {
     type Params = (T, T);
