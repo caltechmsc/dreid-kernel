@@ -234,14 +234,9 @@ mod tests {
     const H: f64 = 1e-6;
     const TOL_DIFF: f64 = 1e-4;
 
-    // Typical H-bond parameters
-    const D_HB: f64 = 4.0; // kcal/mol
-    const R_HB: f64 = 2.75; // Å
+    const D_HB: f64 = 4.0;
+    const R_HB: f64 = 2.75;
     const R_HB_SQ: f64 = R_HB * R_HB;
-
-    fn params() -> (f64, f64) {
-        (D_HB, R_HB_SQ)
-    }
 
     // ========================================================================
     // HydrogenBond<4> Tests (Standard DREIDING)
@@ -251,6 +246,10 @@ mod tests {
         use super::*;
 
         type HBond4 = HydrogenBond<4>;
+
+        fn params() -> (f64, f64) {
+            HBond4::precompute(D_HB, R_HB)
+        }
 
         // --------------------------------------------------------------------
         // 1. Sanity Checks
@@ -276,7 +275,7 @@ mod tests {
             let r_sq = 9.0;
             let cos_theta = 0.8;
             let p64 = params();
-            let p32 = (D_HB as f32, R_HB_SQ as f32);
+            let p32 = HBond4::precompute(D_HB as f32, R_HB as f32);
 
             let e64 = HBond4::energy(r_sq, cos_theta, p64);
             let e32 = HBond4::energy(r_sq as f32, cos_theta as f32, p32);
@@ -427,6 +426,10 @@ mod tests {
         use super::*;
 
         type HBond0 = HydrogenBond<0>;
+
+        fn params() -> (f64, f64) {
+            HBond0::precompute(D_HB, R_HB)
+        }
 
         #[test]
         fn n0_energy_independent_of_angle() {
