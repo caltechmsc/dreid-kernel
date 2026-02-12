@@ -17,6 +17,11 @@ use crate::types::EnergyDiff;
 ///
 /// - `c_half`: Half force constant $C_{half} = C/2$.
 ///
+/// # Pre-computation
+///
+/// Use [`PlanarInversion::precompute`] to convert physical constants into optimized parameters:
+/// $C \to C/2$.
+///
 /// # Inputs
 ///
 /// - `cos_psi`: Cosine of the out-of-plane angle $\psi$.
@@ -30,6 +35,27 @@ use crate::types::EnergyDiff;
 /// - **DREIDING convention:** force constant $C = K_{inv}/3$ (split among three permutations).
 #[derive(Clone, Copy, Debug, Default)]
 pub struct PlanarInversion;
+
+impl PlanarInversion {
+    /// Pre-computes optimized kernel parameters from physical constants.
+    ///
+    /// # Input
+    ///
+    /// - `k`: Force constant $C$.
+    ///
+    /// # Output
+    ///
+    /// Returns `c_half`:
+    /// - `c_half`: Half force constant $C/2$.
+    ///
+    /// # Computation
+    ///
+    /// $$ C_{half} = C / 2 $$
+    #[inline(always)]
+    pub fn precompute<T: Real>(k: T) -> T {
+        k * T::from(0.5)
+    }
+}
 
 impl<T: Real> AngleKernel<T> for PlanarInversion {
     type Params = T;
