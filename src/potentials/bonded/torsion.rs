@@ -9,7 +9,7 @@ use crate::types::EnergyDiff;
 /// Models the rotational barrier around a bond axis using a periodic cosine function.
 ///
 /// - **Formula**: $$ E = \frac{1}{2} V [1 - \cos(n(\phi - \phi_0))] $$
-/// - **Derivative (`diff`)**: $$ T = \frac{dE}{d\phi} = \frac{1}{2} V \cdot n \cdot \sin(n(\phi - \phi_0)) $$
+/// - **Derivative Factor (`diff`)**: $$ T = \frac{dE}{d\phi} = \frac{1}{2} V \cdot n \cdot \sin(n(\phi - \phi_0)) $$
 ///
 /// # Parameters
 ///
