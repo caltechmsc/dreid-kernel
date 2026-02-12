@@ -7,7 +7,7 @@ pub fn bench_hbond(c: &mut Criterion) {
         c,
         "non-bonded/h-bond/n4",
         HydrogenBond<4>,
-        (5.0, 4.0),
+        HydrogenBond::<4>::precompute(5.0, 2.0),
         2.5,
         20.0
     );

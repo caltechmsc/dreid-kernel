@@ -7,7 +7,7 @@ pub fn bench_angle(c: &mut Criterion) {
         c,
         "bonded/angle/cosine-harmonic",
         CosineHarmonic,
-        (50.0, -0.5),
+        CosineHarmonic::precompute(100.0, 120.0),
         125.0
     );
 
@@ -17,7 +17,7 @@ pub fn bench_angle(c: &mut Criterion) {
         c,
         "bonded/angle/theta-harmonic",
         ThetaHarmonic,
-        (50.0, 2.09439510239),
+        ThetaHarmonic::precompute(100.0, 120.0),
         125.0
     );
 }
