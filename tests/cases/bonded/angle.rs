@@ -3,7 +3,7 @@ use dreid_kernel::potentials::bonded::{CosineHarmonic, CosineLinear, ThetaHarmon
 
 verify_angle_potential!(
     CosineHarmonic,
-    (50.0, 0.0),
+    CosineHarmonic::precompute(100.0, 90.0),
     test_cosine_harmonic,
     cases: [
         (90.0, 0.0),
@@ -25,10 +25,9 @@ verify_angle_potential!(
     ]
 );
 
-use std::f64::consts::PI;
 verify_angle_potential!(
     ThetaHarmonic,
-    (50.0, PI / 2.0),
+    ThetaHarmonic::precompute(100.0, 90.0),
     test_theta_harmonic,
     cases: [
         (90.0, 0.0),

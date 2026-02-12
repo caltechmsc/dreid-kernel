@@ -3,7 +3,7 @@ use dreid_kernel::potentials::bonded::{Harmonic, Morse};
 
 verify_pair_potential!(
     Harmonic,
-    (350.0, 1.53),
+    Harmonic::precompute(700.0, 1.53),
     test_harmonic_stretch,
     cases: [
         (1.53, 0.0),
