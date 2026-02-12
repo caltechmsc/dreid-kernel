@@ -338,6 +338,24 @@ mod tests {
             assert!(d_stretched < 0.0);
             assert!(d_compressed > 0.0);
         }
+
+        // --------------------------------------------------------------------
+        // 5. Precompute
+        // --------------------------------------------------------------------
+
+        #[test]
+        fn precompute_values() {
+            let (k_half, r0) = Harmonic::precompute(K_HALF * 2.0, R0);
+            assert_relative_eq!(k_half, K_HALF, epsilon = 1e-14);
+            assert_relative_eq!(r0, R0, epsilon = 1e-14);
+        }
+
+        #[test]
+        fn precompute_round_trip() {
+            let p = Harmonic::precompute(700.0, 1.53);
+            let e = Harmonic::energy(1.53 * 1.53, p);
+            assert_relative_eq!(e, 0.0, epsilon = 1e-14);
+        }
     }
 
     // ========================================================================
