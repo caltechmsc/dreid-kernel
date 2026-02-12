@@ -521,5 +521,24 @@ mod tests {
             assert!(d_above > 0.0);
             assert!(d_below < 0.0);
         }
+
+        // --------------------------------------------------------------------
+        // 5. Precompute
+        // --------------------------------------------------------------------
+
+        #[test]
+        fn precompute_values() {
+            let (c_half, cos_psi0) = UmbrellaInversion::precompute(C_HALF * 2.0, 70.0);
+            assert_relative_eq!(c_half, C_HALF, epsilon = 1e-14);
+            assert_relative_eq!(cos_psi0, 70.0_f64.to_radians().cos(), epsilon = 1e-10);
+        }
+
+        #[test]
+        fn precompute_round_trip() {
+            let p = UmbrellaInversion::precompute(30.0, 70.0);
+            let cos_eq = 70.0_f64.to_radians().cos();
+            let e = UmbrellaInversion::energy(cos_eq, p);
+            assert_relative_eq!(e, 0.0, epsilon = 1e-10);
+        }
     }
 }
