@@ -356,6 +356,23 @@ mod tests {
             assert!(d_pos > 0.0);
             assert!(d_neg < 0.0);
         }
+
+        // --------------------------------------------------------------------
+        // 5. Precompute
+        // --------------------------------------------------------------------
+
+        #[test]
+        fn precompute_values() {
+            let c_half = PlanarInversion::precompute(C_HALF * 2.0);
+            assert_relative_eq!(c_half, C_HALF, epsilon = 1e-14);
+        }
+
+        #[test]
+        fn precompute_round_trip() {
+            let p = PlanarInversion::precompute(40.0);
+            let e = PlanarInversion::energy(0.0, p);
+            assert_relative_eq!(e, 0.0, epsilon = 1e-14);
+        }
     }
 
     // ========================================================================
