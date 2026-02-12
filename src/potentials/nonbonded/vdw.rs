@@ -696,5 +696,26 @@ mod tests {
             let de_dr_ana_in = -Buckingham::diff(r_in * r_in, p) * r_in;
             assert_relative_eq!(de_dr_num_in, de_dr_ana_in, epsilon = TOL_DIFF);
         }
+
+        // --------------------------------------------------------------------
+        // 5. Precompute
+        // --------------------------------------------------------------------
+
+        #[test]
+        fn precompute_values() {
+            let (a, b, c, r_max_sq, two_e_max) = Buckingham::precompute(1.0, 2.0, 12.0);
+            assert_relative_eq!(a, 12.0_f64.exp(), epsilon = 1e-4);
+            assert_relative_eq!(b, 6.0, epsilon = 1e-14);
+            assert_relative_eq!(c, 128.0, epsilon = 1e-10);
+            assert!(r_max_sq > 0.0);
+            assert!(two_e_max.is_finite());
+        }
+
+        #[test]
+        fn precompute_round_trip() {
+            let p = Buckingham::precompute(1.0, 2.0, 12.0);
+            let e = Buckingham::energy(4.0, p);
+            assert_relative_eq!(e, -1.0, epsilon = 1e-6);
+        }
     }
 }
