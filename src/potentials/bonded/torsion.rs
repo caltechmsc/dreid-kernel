@@ -391,6 +391,26 @@ mod tests {
 
             assert_relative_eq!(e1, e2, epsilon = 1e-10);
         }
+
+        // --------------------------------------------------------------------
+        // 5. Precompute
+        // --------------------------------------------------------------------
+
+        #[test]
+        fn precompute_values_n3() {
+            let (v_half, n, cos_n_phi0, sin_n_phi0) = Torsion::precompute(V_HALF * 2.0, 3, 0.0);
+            assert_relative_eq!(v_half, V_HALF, epsilon = 1e-14);
+            assert_eq!(n, 3);
+            assert_relative_eq!(cos_n_phi0, 1.0, epsilon = 1e-10);
+            assert_relative_eq!(sin_n_phi0, 0.0, epsilon = 1e-10);
+        }
+
+        #[test]
+        fn precompute_round_trip() {
+            let p = Torsion::precompute(10.0, 3, 180.0);
+            let e = Torsion::energy(-1.0, 0.0, p);
+            assert_relative_eq!(e, 0.0, epsilon = 1e-10);
+        }
     }
 
     // ========================================================================
