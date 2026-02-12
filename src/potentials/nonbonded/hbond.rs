@@ -20,6 +20,11 @@ use crate::types::HybridEnergyDiff;
 /// - `r_hb_sq`: The squared equilibrium distance $R_{hb}^2$.
 /// - `N`: The cosine power exponent (const generic).
 ///
+/// # Pre-computation
+///
+/// Use [`HydrogenBond::precompute`] to convert physical constants into optimized parameters:
+/// $(D_{hb}, R_{hb}) \to (D_{hb}, R_{hb}^2)$.
+///
 /// # Inputs
 ///
 /// - `r_sq`: Squared distance $r^2$ between Donor (D) and Acceptor (A).
@@ -32,6 +37,29 @@ use crate::types::HybridEnergyDiff;
 /// - **Generics**: Uses `const N: usize` to unroll power calculations at compile time.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct HydrogenBond<const N: usize>;
+
+impl<const N: usize> HydrogenBond<N> {
+    /// Pre-computes optimized kernel parameters from physical constants.
+    ///
+    /// # Input
+    ///
+    /// - `d_hb`: Energy well depth $D_{hb}$.
+    /// - `r_hb`: Equilibrium distance $R_{hb}$.
+    ///
+    /// # Output
+    ///
+    /// Returns `(d_hb, r_hb_sq)`:
+    /// - `d_hb`: Well depth (passed through).
+    /// - `r_hb_sq`: Squared equilibrium distance $R_{hb}^2$.
+    ///
+    /// # Computation
+    ///
+    /// $$ R_{hb}^2 = R_{hb} \times R_{hb} $$
+    #[inline(always)]
+    pub fn precompute<T: Real>(d_hb: T, r_hb: T) -> (T, T) {
+        (d_hb, r_hb * r_hb)
+    }
+}
 
 impl<T: Real, const N: usize> HybridKernel<T> for HydrogenBond<N> {
     type Params = (T, T);
