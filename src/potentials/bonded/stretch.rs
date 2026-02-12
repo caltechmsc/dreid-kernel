@@ -16,6 +16,11 @@ use crate::types::EnergyDiff;
 /// - `k_half`: Half force constant $K_{half} = K/2$.
 /// - `r0`: Equilibrium distance $R_0$.
 ///
+/// # Pre-computation
+///
+/// Use [`Harmonic::precompute`] to convert physical constants into optimized parameters:
+/// $(K, R_0) \to (K/2, R_0)$.
+///
 /// # Inputs
 ///
 /// - `r_sq`: Squared distance $r^2$ between two atoms.
@@ -27,6 +32,30 @@ use crate::types::EnergyDiff;
 /// - Branchless and panic-free.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Harmonic;
+
+impl Harmonic {
+    /// Pre-computes optimized kernel parameters from physical constants.
+    ///
+    /// # Input
+    ///
+    /// - `k`: Force constant $K$.
+    /// - `r0`: Equilibrium distance $R_0$.
+    ///
+    /// # Output
+    ///
+    /// Returns `(k_half, r0)`:
+    /// - `k_half`: Half force constant $K/2$.
+    /// - `r0`: Equilibrium distance (passed through).
+    ///
+    /// # Computation
+    ///
+    /// $$ K_{half} = K / 2 $$
+    #[inline(always)]
+    pub fn precompute<T: Real>(k: T, r0: T) -> (T, T) {
+        let k_half = k * T::from(0.5);
+        (k_half, r0)
+    }
+}
 
 impl<T: Real> PairKernel<T> for Harmonic {
     type Params = (T, T);
