@@ -467,6 +467,25 @@ mod tests {
                 epsilon = 1e-14
             );
         }
+
+        // --------------------------------------------------------------------
+        // 5. Precompute
+        // --------------------------------------------------------------------
+
+        #[test]
+        fn precompute_values() {
+            let (k_half, cos0) = CosineHarmonic::precompute(K_HALF * 2.0, 60.0);
+            assert_relative_eq!(k_half, K_HALF, epsilon = 1e-14);
+            assert_relative_eq!(cos0, COS0, epsilon = 1e-10);
+        }
+
+        #[test]
+        fn precompute_round_trip() {
+            let p = CosineHarmonic::precompute(100.0, 60.0);
+            let cos_eq = 60.0_f64.to_radians().cos();
+            let e = CosineHarmonic::energy(cos_eq, p);
+            assert_relative_eq!(e, 0.0, epsilon = 1e-10);
+        }
     }
 
     // ========================================================================
