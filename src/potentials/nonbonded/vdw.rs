@@ -307,16 +307,6 @@ mod tests {
     const H: f64 = 1e-6;
     const TOL_DIFF: f64 = 1e-4;
 
-    // Typical LJ parameters: D0 = 0.1 kcal/mol, R0 = 3.5 Å
-    const D0: f64 = 0.1;
-    const R0: f64 = 3.5;
-    const R0_SQ: f64 = R0 * R0;
-
-    // Buckingham parameters: A, B, C
-    const BUCK_A: f64 = 1000.0;
-    const BUCK_B: f64 = 3.0;
-    const BUCK_C: f64 = 50.0;
-
     // ========================================================================
     // Lennard-Jones Tests
     // ========================================================================
@@ -491,23 +481,12 @@ mod tests {
     mod buckingham {
         use super::*;
 
-        /// Computes the local maximum of the Buckingham potential via Newton's method.
-        fn reflection_params(a: f64, b: f64, c: f64) -> (f64, f64) {
-            let mut r = 1.0_f64;
-            for _ in 0..100 {
-                let exp_term = (-b * r).exp();
-                let r7 = r.powi(7);
-                let g = a * b * exp_term * r7 - 6.0 * c;
-                let gp = a * b * exp_term * r.powi(6) * (7.0 - b * r);
-                r -= g / gp;
-            }
-            let e_max = a * (-b * r).exp() - c / r.powi(6);
-            (r * r, 2.0 * e_max)
-        }
+        const D0: f64 = 1.0;
+        const R0: f64 = 2.0;
+        const ZETA: f64 = 12.0;
 
         fn params() -> (f64, f64, f64, f64, f64) {
-            let (r_max_sq, two_e_max) = reflection_params(BUCK_A, BUCK_B, BUCK_C);
-            (BUCK_A, BUCK_B, BUCK_C, r_max_sq, two_e_max)
+            Buckingham::precompute(D0, R0, ZETA)
         }
 
         // --------------------------------------------------------------------
@@ -544,14 +523,7 @@ mod tests {
         fn sanity_f32_f64_consistency() {
             let r_sq = 4.0;
             let p64 = params();
-            let (r_max_sq_32, two_e_max_32) = reflection_params(BUCK_A, BUCK_B, BUCK_C);
-            let p32 = (
-                BUCK_A as f32,
-                BUCK_B as f32,
-                BUCK_C as f32,
-                r_max_sq_32 as f32,
-                two_e_max_32 as f32,
-            );
+            let p32 = Buckingham::precompute(D0 as f32, R0 as f32, ZETA as f32);
 
             let e64 = Buckingham::energy(r_sq, p64);
             let e32 = Buckingham::energy(r_sq as f32, p32);
@@ -711,7 +683,7 @@ mod tests {
 
         #[test]
         fn precompute_values() {
-            let (a, b, c, r_max_sq, two_e_max) = Buckingham::precompute(1.0, 2.0, 12.0);
+            let (a, b, c, r_max_sq, two_e_max) = Buckingham::precompute(D0, R0, ZETA);
             assert_relative_eq!(a, 12.0_f64.exp(), epsilon = 1e-4);
             assert_relative_eq!(b, 6.0, epsilon = 1e-14);
             assert_relative_eq!(c, 128.0, epsilon = 1e-10);
@@ -721,9 +693,9 @@ mod tests {
 
         #[test]
         fn precompute_round_trip() {
-            let p = Buckingham::precompute(1.0, 2.0, 12.0);
-            let e = Buckingham::energy(4.0, p);
-            assert_relative_eq!(e, -1.0, epsilon = 1e-6);
+            let p = Buckingham::precompute(D0, R0, ZETA);
+            let e = Buckingham::energy(R0 * R0, p);
+            assert_relative_eq!(e, -D0, epsilon = 1e-6);
         }
     }
 }
