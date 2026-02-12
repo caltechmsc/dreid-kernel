@@ -13,8 +13,8 @@ use crate::types::EnergyDiff;
 ///
 /// # Parameters
 ///
-/// - `d0`: The energy well depth $D_0$.
-/// - `r0_sq`: The squared equilibrium distance $R_0^2$.
+/// - `d0`: Energy well depth $D_0$.
+/// - `r0_sq`: Squared equilibrium distance $R_0^2$.
 ///
 /// # Pre-computation
 ///
@@ -64,7 +64,7 @@ impl<T: Real> PairKernel<T> for LennardJones {
     ///
     /// # Formula
     ///
-    /// $$ E = D_0 (s^6 - 2s^3), \quad \text{where } s = (R_0/r)^2 $$
+    /// $$ E = D_0 (s^6 - 2 s^3), \quad \text{where } s = R_0^2 / r^2 $$
     #[inline(always)]
     fn energy(r_sq: T, (d0, r0_sq): Self::Params) -> T {
         let s = r0_sq * r_sq.recip();
@@ -78,7 +78,7 @@ impl<T: Real> PairKernel<T> for LennardJones {
     ///
     /// # Formula
     ///
-    /// $$ D = \frac{12 D_0}{r^2} (s^6 - s^3), \quad \text{where } s = (R_0/r)^2 $$
+    /// $$ D = \frac{12 D_0}{r^2} (s^6 - s^3), \quad \text{where } s = R_0^2 / r^2 $$
     ///
     /// This factor is defined such that the force vector can be computed
     /// by a single vector multiplication: $\vec{F} = -D \cdot \vec{r}$.
@@ -124,10 +124,10 @@ impl<T: Real> PairKernel<T> for LennardJones {
 ///
 /// For computational efficiency, the physical parameters ($D_0, R_0, \zeta$) are pre-computed
 /// into the standard Buckingham form ($A, B, C$):
-/// - `a`: The repulsion pre-factor $A = \frac{6 D_0}{\zeta-6} e^{\zeta}$.
-/// - `b`: The repulsion decay constant $B = \zeta / R_0$.
-/// - `c`: The attraction pre-factor $C = \frac{\zeta D_0 R_0^6}{\zeta-6}$.
-/// - `r_max_sq`: The squared distance of the local energy maximum $r_{\text{max}}^2$.
+/// - `a`: Repulsion pre-factor $A = \frac{6 D_0}{\zeta-6} e^{\zeta}$.
+/// - `b`: Repulsion decay constant $B = \zeta / R_0$.
+/// - `c`: Attraction pre-factor $C = \frac{\zeta D_0 R_0^6}{\zeta-6}$.
+/// - `r_max_sq`: Squared distance of the local energy maximum $r_{\text{max}}^2$.
 /// - `two_e_max`: Twice the energy at the local maximum, $2 E(r_{\text{max}})$.
 ///
 /// # Pre-computation

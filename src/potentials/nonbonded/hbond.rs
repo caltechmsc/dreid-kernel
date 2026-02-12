@@ -16,9 +16,9 @@ use crate::types::HybridEnergyDiff;
 ///
 /// # Parameters
 ///
-/// - `d_hb`: The energy well depth $D_{hb}$.
-/// - `r_hb_sq`: The squared equilibrium distance $R_{hb}^2$.
-/// - `N`: The cosine power exponent (const generic).
+/// - `d_hb`: Energy well depth $D_{hb}$.
+/// - `r_hb_sq`: Squared equilibrium distance $R_{hb}^2$.
+/// - `N`: Cosine power exponent (const generic).
 ///
 /// # Pre-computation
 ///
@@ -68,7 +68,7 @@ impl<T: Real, const N: usize> HybridKernel<T> for HydrogenBond<N> {
     ///
     /// # Formula
     ///
-    /// $$ E = D_{hb} (5s^6 - 6s^5) \cos^N \theta, \quad \text{where } s = (R_{hb}/r)^2 $$
+    /// $$ E = D_{hb} (5 s^6 - 6 s^5) \cos^N \theta, \quad \text{where } s = R_{hb}^2 / r^2 $$
     #[inline(always)]
     fn energy(r_sq: T, cos_theta: T, (d_hb, r_hb_sq): Self::Params) -> T {
         let effective_cos = cos_theta.max(T::from(0.0));
@@ -91,7 +91,7 @@ impl<T: Real, const N: usize> HybridKernel<T> for HydrogenBond<N> {
     ///
     /// # Formula
     ///
-    /// $$ D_{rad} = \frac{60 D_{hb}}{r^2} (s^6 - s^5) \cos^N \theta, \quad \text{where } s = (R_{hb}/r)^2 $$
+    /// $$ D_{rad} = \frac{60 D_{hb}}{r^2} (s^6 - s^5) \cos^N \theta, \quad \text{where } s = R_{hb}^2 / r^2 $$
     /// $$ D_{ang} = N E_{rad} \cos^{N-1} \theta $$
     ///
     /// - `force_factor_rad` ($D_{rad}$): Used to compute the central force along the D-A axis:

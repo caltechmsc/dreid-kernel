@@ -14,12 +14,12 @@ use crate::types::EnergyDiff;
 /// # Parameters
 ///
 /// - `k_half`: Half force constant $C_{half} = C/2$.
-/// - `cos0`: The cosine of the equilibrium angle $\cos\theta_0$.
+/// - `cos0`: Cosine of equilibrium angle $\cos_0$.
 ///
 /// # Pre-computation
 ///
 /// Use [`CosineHarmonic::precompute`] to convert physical constants into optimized parameters:
-/// $(C, \theta_0°) \to (C/2, \cos\theta_0)$.
+/// $(C, \theta_0°) \to (C/2, \cos_0)$.
 ///
 /// # Inputs
 ///
@@ -45,7 +45,7 @@ impl CosineHarmonic {
     ///
     /// Returns `(k_half, cos0)`:
     /// - `k_half`: Half force constant $C/2$.
-    /// - `cos0`: Cosine of equilibrium angle $\cos\theta_0$.
+    /// - `cos0`: Cosine of equilibrium angle $\cos_0$.
     ///
     /// # Computation
     ///
@@ -67,7 +67,7 @@ impl<T: Real> AngleKernel<T> for CosineHarmonic {
     ///
     /// # Formula
     ///
-    /// $$ E = C_{half} (\Delta)^2, \quad \text{where } \Delta = \cos\theta - \cos\theta_0 $$
+    /// $$ E = C_{half} (\Delta)^2, \quad \text{where } \Delta = \cos\theta - \cos_0 $$
     #[inline(always)]
     fn energy(cos_theta: T, (k_half, cos0): Self::Params) -> T {
         let delta = cos_theta - cos0;
@@ -78,7 +78,7 @@ impl<T: Real> AngleKernel<T> for CosineHarmonic {
     ///
     /// # Formula
     ///
-    /// $$ \Gamma = 2 C_{half} (\cos\theta - \cos\theta_0) $$
+    /// $$ \Gamma = 2 C_{half} (\cos\theta - \cos_0) $$
     ///
     /// This factor allows computing forces via the chain rule:
     /// $$ \vec{F} = -\Gamma \cdot \nabla (\cos\theta) $$
@@ -182,7 +182,7 @@ impl<T: Real> AngleKernel<T> for CosineLinear {
 /// # Parameters
 ///
 /// - `k_half`: Half force constant $K_{half} = K/2$.
-/// - `theta0`: The equilibrium angle $\theta_0$ in radians.
+/// - `theta0`: Equilibrium angle $\theta_0$ in radians.
 ///
 /// # Pre-computation
 ///

@@ -2,7 +2,7 @@ use crate::math::Real;
 use crate::traits::PairKernel;
 use crate::types::EnergyDiff;
 
-/// Standard Coulomb potential implementation for electrostatics.
+/// Standard Coulomb potential for electrostatics.
 ///
 /// # Physics
 ///
@@ -13,11 +13,11 @@ use crate::types::EnergyDiff;
 ///
 /// # Parameters
 ///
-/// - `q_product`: The effective charge product $ Q_{eff} = \frac{C \cdot q_i q_j}{\epsilon} $.
+/// - `q_product`: Effective charge product $Q_{eff} = \frac{C \cdot q_i q_j}{\epsilon}$.
 ///
 /// # Inputs
 ///
-/// - `r_sq`: Squared distance $ r^2 $ between two atoms.
+/// - `r_sq`: Squared distance $r^2$ between two atoms.
 ///
 /// # Implementation Notes
 ///

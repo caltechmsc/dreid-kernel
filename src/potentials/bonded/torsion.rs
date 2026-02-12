@@ -15,13 +15,13 @@ use crate::types::EnergyDiff;
 ///
 /// - `v_half`: Half barrier height $V_{half} = V/2$.
 /// - `n`: Periodicity/multiplicity.
-/// - `cos_n_phi0`: $\cos(n\phi_0)$, pre-computed phase cosine.
-/// - `sin_n_phi0`: $\sin(n\phi_0)$, pre-computed phase sine.
+/// - `cos_n_phi0`: $\cos_{n\phi_0}$, pre-computed phase cosine.
+/// - `sin_n_phi0`: $\sin_{n\phi_0}$, pre-computed phase sine.
 ///
 /// # Pre-computation
 ///
 /// Use [`Torsion::precompute`] to convert physical constants into optimized parameters:
-/// $(V, n, \phi_0°) \to (V/2, n, \cos(n\phi_0), \sin(n\phi_0))$.
+/// $(V, n, \phi_0°) \to (V/2, n, \cos_{n\phi_0}, \sin_{n\phi_0})$.
 ///
 /// # Inputs
 ///
@@ -51,8 +51,8 @@ impl Torsion {
     /// Returns `(v_half, n, cos_n_phi0, sin_n_phi0)`:
     /// - `v_half`: Half barrier height $V/2$.
     /// - `n`: Periodicity (passed through).
-    /// - `cos_n_phi0`: $\cos(n\phi_0)$, pre-computed phase cosine.
-    /// - `sin_n_phi0`: $\sin(n\phi_0)$, pre-computed phase sine.
+    /// - `cos_n_phi0`: $\cos_{n\phi_0}$, pre-computed phase cosine.
+    /// - `sin_n_phi0`: $\sin_{n\phi_0}$, pre-computed phase sine.
     ///
     /// # Computation
     ///
@@ -76,7 +76,7 @@ impl<T: Real> TorsionKernel<T> for Torsion {
     ///
     /// # Formula
     ///
-    /// $$ E = V_{half} [1 - \cos(n(\phi - \phi_0))] $$
+    /// $$ E = V_{half} [1 - (\cos(n\phi) \cos_{n\phi_0} + \sin(n\phi) \sin_{n\phi_0})] $$
     #[inline(always)]
     fn energy(cos_phi: T, sin_phi: T, (v_half, n, cos_n_phi0, sin_n_phi0): Self::Params) -> T {
         let one = T::from(1.0f32);
@@ -89,7 +89,7 @@ impl<T: Real> TorsionKernel<T> for Torsion {
     ///
     /// # Formula
     ///
-    /// $$ T = V_{half} \cdot n \cdot \sin(n(\phi - \phi_0)) $$
+    /// $$ T = V_{half} \cdot n \cdot (\sin(n\phi) \cos_{n\phi_0} - \cos(n\phi) \sin_{n\phi_0}) $$
     ///
     /// This factor allows computing forces via the chain rule:
     /// $$ \vec{F} = -T \cdot \nabla \phi $$

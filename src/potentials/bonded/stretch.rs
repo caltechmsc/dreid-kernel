@@ -2,7 +2,7 @@ use crate::math::Real;
 use crate::traits::PairKernel;
 use crate::types::EnergyDiff;
 
-/// Harmonic potential implementation for 1-2 bond stretching.
+/// Harmonic potential for 1-2 bond stretching.
 ///
 /// # Physics
 ///
@@ -109,7 +109,7 @@ impl<T: Real> PairKernel<T> for Harmonic {
     }
 }
 
-/// Morse potential implementation for 1-2 bond stretching.
+/// Morse potential for 1-2 bond stretching.
 ///
 /// # Physics
 ///
