@@ -383,11 +383,13 @@ mod tests {
     mod umbrella_inversion {
         use super::*;
 
-        const C_HALF: f64 = 15.0; // C/2 = 15 kcal/mol
-        const COS_PSI0: f64 = 0.33; // ~70° typical for sp³
+        const C: f64 = 30.0;
+        const PSI0_DEG: f64 = 60.0;
+        const C_HALF: f64 = C / 2.0;
+        const COS_PSI0: f64 = 0.5;
 
         fn params() -> (f64, f64) {
-            (C_HALF, COS_PSI0)
+            UmbrellaInversion::precompute(C, PSI0_DEG)
         }
 
         // --------------------------------------------------------------------
@@ -411,7 +413,7 @@ mod tests {
         fn sanity_f32_f64_consistency() {
             let cos_psi = 0.4;
             let p64 = params();
-            let p32 = (C_HALF as f32, COS_PSI0 as f32);
+            let p32 = UmbrellaInversion::precompute(C as f32, PSI0_DEG as f32);
 
             let e64 = UmbrellaInversion::energy(cos_psi, p64);
             let e32 = UmbrellaInversion::energy(cos_psi as f32, p32);
@@ -529,16 +531,15 @@ mod tests {
 
         #[test]
         fn precompute_values() {
-            let (c_half, cos_psi0) = UmbrellaInversion::precompute(C_HALF * 2.0, 70.0);
+            let (c_half, cos_psi0) = UmbrellaInversion::precompute(C, PSI0_DEG);
             assert_relative_eq!(c_half, C_HALF, epsilon = 1e-14);
-            assert_relative_eq!(cos_psi0, 70.0_f64.to_radians().cos(), epsilon = 1e-10);
+            assert_relative_eq!(cos_psi0, COS_PSI0, epsilon = 1e-10);
         }
 
         #[test]
         fn precompute_round_trip() {
-            let p = UmbrellaInversion::precompute(30.0, 70.0);
-            let cos_eq = 70.0_f64.to_radians().cos();
-            let e = UmbrellaInversion::energy(cos_eq, p);
+            let p = UmbrellaInversion::precompute(C, PSI0_DEG);
+            let e = UmbrellaInversion::energy(COS_PSI0, p);
             assert_relative_eq!(e, 0.0, epsilon = 1e-10);
         }
     }
