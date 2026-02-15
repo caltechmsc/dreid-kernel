@@ -43,7 +43,7 @@ pub trait PairKernel<T: Real> {
 /// - **Output (Diff)**: The torque-like factor $\Gamma$ defined as:
 ///   $$ \Gamma = \frac{dE}{d(\cos\theta)} $$
 pub trait AngleKernel<T: Real> {
-    /// Associated constants/parameters required by the potential (e.g., $k, \theta_0$).
+    /// Associated constants/parameters required by the potential (e.g., $C, \theta_0$).
     type Params: Copy;
 
     /// Computes only the potential energy.
