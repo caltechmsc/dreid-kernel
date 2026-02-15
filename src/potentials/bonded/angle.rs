@@ -13,7 +13,7 @@ use crate::types::EnergyDiff;
 ///
 /// # Parameters
 ///
-/// - `k_half`: Half force constant $C_{half} = C/2$.
+/// - `c_half`: Half force constant $C_{half} = C/2$.
 /// - `cos0`: Cosine of equilibrium angle $\cos_0$.
 ///
 /// # Pre-computation
@@ -38,25 +38,25 @@ impl CosineHarmonic {
     ///
     /// # Input
     ///
-    /// - `k`: Force constant $C$.
+    /// - `c`: Force constant $C$.
     /// - `theta0_deg`: Equilibrium angle $\theta_0$ in degrees.
     ///
     /// # Output
     ///
-    /// Returns `(k_half, cos0)`:
-    /// - `k_half`: Half force constant $C/2$.
+    /// Returns `(c_half, cos0)`:
+    /// - `c_half`: Half force constant $C/2$.
     /// - `cos0`: Cosine of equilibrium angle $\cos_0$.
     ///
     /// # Computation
     ///
     /// $$ C_{half} = C / 2, \quad \cos_0 = \cos(\theta_0 \cdot \pi / 180) $$
     #[inline(always)]
-    pub fn precompute<T: Real>(k: T, theta0_deg: T) -> (T, T) {
+    pub fn precompute<T: Real>(c: T, theta0_deg: T) -> (T, T) {
         let deg_to_rad = T::pi() / T::from(180.0);
         let theta0 = theta0_deg * deg_to_rad;
-        let k_half = k * T::from(0.5);
+        let c_half = c * T::from(0.5);
         let cos0 = theta0.cos();
-        (k_half, cos0)
+        (c_half, cos0)
     }
 }
 
@@ -69,9 +69,9 @@ impl<T: Real> AngleKernel<T> for CosineHarmonic {
     ///
     /// $$ E = C_{half} (\Delta)^2, \quad \text{where } \Delta = \cos\theta - \cos_0 $$
     #[inline(always)]
-    fn energy(cos_theta: T, (k_half, cos0): Self::Params) -> T {
+    fn energy(cos_theta: T, (c_half, cos0): Self::Params) -> T {
         let delta = cos_theta - cos0;
-        k_half * delta * delta
+        c_half * delta * delta
     }
 
     /// Computes only the derivative factor $\Gamma$.
@@ -83,8 +83,8 @@ impl<T: Real> AngleKernel<T> for CosineHarmonic {
     /// This factor allows computing forces via the chain rule:
     /// $$ \vec{F} = -\Gamma \cdot \nabla (\cos\theta) $$
     #[inline(always)]
-    fn diff(cos_theta: T, (k_half, cos0): Self::Params) -> T {
-        let c = k_half + k_half;
+    fn diff(cos_theta: T, (c_half, cos0): Self::Params) -> T {
+        let c = c_half + c_half;
         c * (cos_theta - cos0)
     }
 
@@ -92,12 +92,12 @@ impl<T: Real> AngleKernel<T> for CosineHarmonic {
     ///
     /// This method reuses intermediate calculations to minimize operations.
     #[inline(always)]
-    fn compute(cos_theta: T, (k_half, cos0): Self::Params) -> EnergyDiff<T> {
+    fn compute(cos_theta: T, (c_half, cos0): Self::Params) -> EnergyDiff<T> {
         let delta = cos_theta - cos0;
 
-        let energy = k_half * delta * delta;
+        let energy = c_half * delta * delta;
 
-        let c = k_half + k_half;
+        let c = c_half + c_half;
         let diff = c * delta;
 
         EnergyDiff { energy, diff }
@@ -111,12 +111,12 @@ impl<T: Real> AngleKernel<T> for CosineHarmonic {
 /// Models the angle bending energy for atoms with linear equilibrium geometry ($\theta_0 = 180°$),
 /// using a simple linear function of the cosine of the angle.
 ///
-/// - **Formula**: $$ E = K (1 + \cos\theta) $$
-/// - **Derivative Factor (`diff`)**: $$ \Gamma = \frac{dE}{d(\cos\theta)} = K $$
+/// - **Formula**: $$ E = C (1 + \cos\theta) $$
+/// - **Derivative Factor (`diff`)**: $$ \Gamma = \frac{dE}{d(\cos\theta)} = C $$
 ///
 /// # Parameters
 ///
-/// - `k`: Force constant $K$.
+/// - `c`: Force constant $C$.
 ///
 /// # Inputs
 ///
@@ -137,34 +137,34 @@ impl<T: Real> AngleKernel<T> for CosineLinear {
     ///
     /// # Formula
     ///
-    /// $$ E = K (1 + \cos\theta) $$
+    /// $$ E = C (1 + \cos\theta) $$
     #[inline(always)]
-    fn energy(cos_theta: T, k: Self::Params) -> T {
+    fn energy(cos_theta: T, c: Self::Params) -> T {
         let one = T::from(1.0f32);
-        k * (one + cos_theta)
+        c * (one + cos_theta)
     }
 
     /// Computes only the derivative factor $\Gamma$.
     ///
     /// # Formula
     ///
-    /// $$ \Gamma = K $$
+    /// $$ \Gamma = C $$
     ///
     /// This factor allows computing forces via the chain rule:
     /// $$ \vec{F} = -\Gamma \cdot \nabla (\cos\theta) $$
     #[inline(always)]
-    fn diff(_cos_theta: T, k: Self::Params) -> T {
-        k
+    fn diff(_cos_theta: T, c: Self::Params) -> T {
+        c
     }
 
     /// Computes both energy and derivative factor efficiently.
     ///
     /// This method reuses intermediate calculations to minimize operations.
     #[inline(always)]
-    fn compute(cos_theta: T, k: Self::Params) -> EnergyDiff<T> {
+    fn compute(cos_theta: T, c: Self::Params) -> EnergyDiff<T> {
         let one = T::from(1.0f32);
-        let energy = k * (one + cos_theta);
-        let diff = k;
+        let energy = c * (one + cos_theta);
+        let diff = c;
 
         EnergyDiff { energy, diff }
     }
