@@ -41,7 +41,7 @@ impl PlanarInversion {
     ///
     /// # Input
     ///
-    /// - `k`: Force constant $C$.
+    /// - `c`: Force constant $C$.
     ///
     /// # Output
     ///
@@ -52,8 +52,8 @@ impl PlanarInversion {
     ///
     /// $$ C_{half} = C / 2 $$
     #[inline(always)]
-    pub fn precompute<T: Real>(k: T) -> T {
-        k * T::from(0.5)
+    pub fn precompute<T: Real>(c: T) -> T {
+        c * T::from(0.5)
     }
 }
 
@@ -137,7 +137,7 @@ impl UmbrellaInversion {
     ///
     /// # Input
     ///
-    /// - `k`: Force constant $C$.
+    /// - `c`: Force constant $C$.
     /// - `psi0_deg`: Equilibrium out-of-plane angle $\psi_0$ in degrees.
     ///
     /// # Output
@@ -150,9 +150,9 @@ impl UmbrellaInversion {
     ///
     /// $$ C_{half} = C / 2, \quad \cos_{\psi,0} = \cos(\psi_0 \cdot \pi / 180) $$
     #[inline(always)]
-    pub fn precompute<T: Real>(k: T, psi0_deg: T) -> (T, T) {
+    pub fn precompute<T: Real>(c: T, psi0_deg: T) -> (T, T) {
         let deg_to_rad = T::pi() / T::from(180.0);
-        let c_half = k * T::from(0.5);
+        let c_half = c * T::from(0.5);
         let cos_psi0 = (psi0_deg * deg_to_rad).cos();
         (c_half, cos_psi0)
     }
