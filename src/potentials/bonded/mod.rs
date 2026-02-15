@@ -21,8 +21,8 @@
 //!
 //! ## 4. Inversion / Improper (4-body)
 //! Interactions maintaining planarity or chiral centers.
-//! - [`PlanarInversion`]: Harmonic potential on the out-of-plane distance.
-//! - [`UmbrellaInversion`]: Harmonic potential on the Wilson angle.
+//! - [`PlanarInversion`]: Harmonic potential on the cosine of the out-of-plane angle.
+//! - [`UmbrellaInversion`]: Harmonic potential on the cosine of the Wilson angle.
 
 mod angle;
 mod inversion;
