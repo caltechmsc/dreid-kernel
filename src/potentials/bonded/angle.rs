@@ -344,13 +344,13 @@ mod tests {
     mod cosine_harmonic {
         use super::*;
 
-        const K: f64 = 100.0;
+        const C: f64 = 100.0;
         const THETA0_DEG: f64 = 60.0;
-        const K_HALF: f64 = K / 2.0;
+        const C_HALF: f64 = C / 2.0;
         const COS0: f64 = 0.5;
 
         fn params() -> (f64, f64) {
-            CosineHarmonic::precompute(K, THETA0_DEG)
+            CosineHarmonic::precompute(C, THETA0_DEG)
         }
 
         // --------------------------------------------------------------------
@@ -374,7 +374,7 @@ mod tests {
         fn sanity_f32_f64_consistency() {
             let cos_theta = 0.6;
             let p64 = params();
-            let p32 = CosineHarmonic::precompute(K as f32, THETA0_DEG as f32);
+            let p32 = CosineHarmonic::precompute(C as f32, THETA0_DEG as f32);
 
             let e64 = CosineHarmonic::energy(cos_theta, p64);
             let e32 = CosineHarmonic::energy(cos_theta as f32, p32);
@@ -461,7 +461,7 @@ mod tests {
         fn specific_no_trig_needed() {
             let cos_theta = 0.7;
             let delta = cos_theta - COS0;
-            let expected = K_HALF * delta * delta;
+            let expected = C_HALF * delta * delta;
 
             assert_relative_eq!(
                 CosineHarmonic::energy(cos_theta, params()),
@@ -476,14 +476,14 @@ mod tests {
 
         #[test]
         fn precompute_values() {
-            let (k_half, cos0) = CosineHarmonic::precompute(K, THETA0_DEG);
-            assert_relative_eq!(k_half, K_HALF, epsilon = 1e-14);
+            let (c_half, cos0) = CosineHarmonic::precompute(C, THETA0_DEG);
+            assert_relative_eq!(c_half, C_HALF, epsilon = 1e-14);
             assert_relative_eq!(cos0, COS0, epsilon = 1e-10);
         }
 
         #[test]
         fn precompute_round_trip() {
-            let p = CosineHarmonic::precompute(K, THETA0_DEG);
+            let p = CosineHarmonic::precompute(C, THETA0_DEG);
             let e = CosineHarmonic::energy(COS0, p);
             assert_relative_eq!(e, 0.0, epsilon = 1e-10);
         }
@@ -496,10 +496,10 @@ mod tests {
     mod cosine_linear {
         use super::*;
 
-        const K: f64 = 100.0;
+        const C: f64 = 100.0;
 
         fn params() -> f64 {
-            K
+            C
         }
 
         // --------------------------------------------------------------------
@@ -523,7 +523,7 @@ mod tests {
         fn sanity_f32_f64_consistency() {
             let cos_theta = -0.3;
             let p64 = params();
-            let p32 = K as f32;
+            let p32 = C as f32;
 
             let e64 = CosineLinear::energy(cos_theta, p64);
             let e32 = CosineLinear::energy(cos_theta as f32, p32);
@@ -536,7 +536,7 @@ mod tests {
             let result = CosineLinear::compute(-1.0, params());
 
             assert_relative_eq!(result.energy, 0.0, epsilon = 1e-14);
-            assert_relative_eq!(result.diff, K, epsilon = 1e-14);
+            assert_relative_eq!(result.diff, C, epsilon = 1e-14);
         }
 
         // --------------------------------------------------------------------
@@ -608,10 +608,10 @@ mod tests {
         fn specific_constant_derivative() {
             let p = params();
 
-            assert_relative_eq!(CosineLinear::diff(1.0, p), K, epsilon = 1e-14);
-            assert_relative_eq!(CosineLinear::diff(0.0, p), K, epsilon = 1e-14);
-            assert_relative_eq!(CosineLinear::diff(-0.5, p), K, epsilon = 1e-14);
-            assert_relative_eq!(CosineLinear::diff(-1.0, p), K, epsilon = 1e-14);
+            assert_relative_eq!(CosineLinear::diff(1.0, p), C, epsilon = 1e-14);
+            assert_relative_eq!(CosineLinear::diff(0.0, p), C, epsilon = 1e-14);
+            assert_relative_eq!(CosineLinear::diff(-0.5, p), C, epsilon = 1e-14);
+            assert_relative_eq!(CosineLinear::diff(-1.0, p), C, epsilon = 1e-14);
         }
     }
 
