@@ -16,6 +16,7 @@ verify_pair_potential!(
     Buckingham::precompute(1.0, 2.0, 12.0),
     test_buckingham,
     cases: [
-        (2.0, -1.0)
+        (2.0, -1.0),
+        (0.4, 19896.043612)
     ]
 );
