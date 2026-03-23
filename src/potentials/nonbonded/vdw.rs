@@ -135,7 +135,7 @@ impl<T: Real> PairKernel<T> for LennardJones {
 /// Use [`Buckingham::precompute`] to convert physical constants into optimized parameters:
 /// $(D_0, R_0, \zeta) \to (A, B, C, r_{max}^2, 2E_{max})$.
 /// This involves computing the $A, B, C$ form and finding the reflection point
-/// via Newton's method.
+/// via bisection.
 ///
 /// # Inputs
 ///
@@ -162,7 +162,7 @@ impl Buckingham {
     ///
     /// - `d0`: Energy well depth $D_0$.
     /// - `r0`: Equilibrium distance $R_0$.
-    /// - `zeta`: Steepness parameter $\zeta$ (must be $> 6$).
+    /// - `zeta`: Steepness parameter $\zeta$ (must be $> 7$).
     ///
     /// # Output
     ///
@@ -177,7 +177,7 @@ impl Buckingham {
     ///
     /// $$ A = \frac{6 D_0}{\zeta - 6} e^{\zeta}, \quad B = \frac{\zeta}{R_0}, \quad C = \frac{\zeta D_0 R_0^6}{\zeta - 6} $$
     ///
-    /// The reflection point $r_{max}$ is found by solving $dE/dr = 0$ via Newton's method.
+    /// The reflection point $r_{max}$ is found by bisecting $dE/dr = 0$ on $(0,\, 7/B)$.
     #[inline(always)]
     pub fn precompute<T: Real>(d0: T, r0: T, zeta: T) -> (T, T, T, T, T) {
         let six = T::from(6.0);
@@ -191,19 +191,22 @@ impl Buckingham {
         let b = zeta / r0;
         let c = zeta * d0 * r0_6 / zeta_minus_6;
 
-        let seven = T::from(7.0);
-        let mut r = r0;
-        for _ in 0..32 {
-            let exp_term = T::exp(-b * r);
-            let r2 = r * r;
-            let r3 = r2 * r;
+        let mut lo = T::from(0.0);
+        let mut hi = T::from(7.0) / b;
+        for _ in 0..52 {
+            let mid = (lo + hi) * T::from(0.5);
+            let r2 = mid * mid;
+            let r3 = r2 * mid;
             let r6 = r3 * r3;
-            let r7 = r6 * r;
-
-            let g = a * b * exp_term * r7 - six * c;
-            let gp = a * b * exp_term * r6 * (seven - b * r);
-            r = r - g / gp;
+            let r7 = r6 * mid;
+            let g = a * b * T::exp(-b * mid) * r7 - six * c;
+            if g < T::from(0.0) {
+                lo = mid;
+            } else {
+                hi = mid;
+            }
         }
+        let r = (lo + hi) * T::from(0.5);
 
         let r_max_sq = r * r;
 
