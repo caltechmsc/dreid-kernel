@@ -177,7 +177,7 @@ impl Buckingham {
     ///
     /// $$ A = \frac{6 D_0}{\zeta - 6} e^{\zeta}, \quad B = \frac{\zeta}{R_0}, \quad C = \frac{\zeta D_0 R_0^6}{\zeta - 6} $$
     ///
-    /// The reflection point $r_{max}$ is found by bisecting $dE/dr = 0$ on $(0,\, 7/B)$.
+    /// The reflection point $r_{max}$ is found by bisecting $dE/dr = 0$ on $(0, 7/B)$.
     #[inline(always)]
     pub fn precompute<T: Real>(d0: T, r0: T, zeta: T) -> (T, T, T, T, T) {
         let six = T::from(6.0);
