@@ -19,7 +19,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-dreid-kernel = "0.4.1"
+dreid-kernel = "0.4.2"
 ```
 
 ## Usage
