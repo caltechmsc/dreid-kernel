@@ -534,6 +534,12 @@ mod tests {
             assert_relative_eq!(e64, e32 as f64, epsilon = 1e-3);
         }
 
+        #[test]
+        fn sanity_equilibrium_zero_force() {
+            let d = Buckingham::diff(R0 * R0, params());
+            assert_relative_eq!(d, 0.0, epsilon = 1e-10);
+        }
+
         // --------------------------------------------------------------------
         // 2. Numerical Stability
         // --------------------------------------------------------------------
@@ -590,7 +596,7 @@ mod tests {
 
         #[test]
         fn finite_diff_reflected_region() {
-            finite_diff_check(0.8);
+            finite_diff_check(0.4);
         }
 
         #[test]
@@ -663,19 +669,17 @@ mod tests {
             let p = params();
             let r_max = p.3.sqrt();
 
-            let h = 1e-6;
-
             let r_out = r_max + 0.01;
-            let e_p = Buckingham::energy((r_out + h).powi(2), p);
-            let e_m = Buckingham::energy((r_out - h).powi(2), p);
-            let de_dr_num_out = (e_p - e_m) / (2.0 * h);
+            let e_p = Buckingham::energy((r_out + H).powi(2), p);
+            let e_m = Buckingham::energy((r_out - H).powi(2), p);
+            let de_dr_num_out = (e_p - e_m) / (2.0 * H);
             let de_dr_ana_out = -Buckingham::diff(r_out * r_out, p) * r_out;
             assert_relative_eq!(de_dr_num_out, de_dr_ana_out, epsilon = TOL_DIFF);
 
             let r_in = r_max - 0.01;
-            let e_p = Buckingham::energy((r_in + h).powi(2), p);
-            let e_m = Buckingham::energy((r_in - h).powi(2), p);
-            let de_dr_num_in = (e_p - e_m) / (2.0 * h);
+            let e_p = Buckingham::energy((r_in + H).powi(2), p);
+            let e_m = Buckingham::energy((r_in - H).powi(2), p);
+            let de_dr_num_in = (e_p - e_m) / (2.0 * H);
             let de_dr_ana_in = -Buckingham::diff(r_in * r_in, p) * r_in;
             assert_relative_eq!(de_dr_num_in, de_dr_ana_in, epsilon = TOL_DIFF);
         }
@@ -687,11 +691,31 @@ mod tests {
         #[test]
         fn precompute_values() {
             let (a, b, c, r_max_sq, two_e_max) = Buckingham::precompute(D0, R0, ZETA);
-            assert_relative_eq!(a, 12.0_f64.exp(), epsilon = 1e-4);
+            assert_relative_eq!(a, 12.0_f64.exp(), epsilon = 1e-12);
             assert_relative_eq!(b, 6.0, epsilon = 1e-14);
             assert_relative_eq!(c, 128.0, epsilon = 1e-10);
             assert!(r_max_sq > 0.0);
             assert!(two_e_max.is_finite());
+        }
+
+        #[test]
+        fn precompute_r_max_is_critical_point() {
+            let (a, b, c, r_max_sq, _) = params();
+            let r = r_max_sq.sqrt();
+            let g = a * b * (-b * r).exp() * r.powi(7) - 6.0 * c;
+            assert!(g.abs() < 1e-9);
+        }
+
+        #[test]
+        fn precompute_r_max_less_than_r0() {
+            let (_, _, _, r_max_sq, _) = params();
+            assert!(r_max_sq < R0 * R0);
+        }
+
+        #[test]
+        fn precompute_e_max_positive() {
+            let (_, _, _, _, two_e_max) = params();
+            assert!(two_e_max > 0.0);
         }
 
         #[test]
